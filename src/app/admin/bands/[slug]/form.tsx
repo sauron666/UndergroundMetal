@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ImageUpload } from "@/components/uploads/image-upload";
 import { toast } from "sonner";
 import type { BandStatus } from "@prisma/client";
 
@@ -22,6 +23,8 @@ interface BandData {
   themes: string[];
   verified: boolean;
   genreIds: string[];
+  imageUrl: string | null;
+  bannerUrl: string | null;
 }
 
 const STATUSES: BandStatus[] = ["ACTIVE", "ON_HOLD", "SPLIT_UP", "CHANGED_NAME", "UNKNOWN"];
@@ -57,6 +60,8 @@ export function BandEditForm({
           status: data.status,
           undergroundScore: data.undergroundScore,
           heaviness: data.heaviness,
+          imageUrl: data.imageUrl,
+          bannerUrl: data.bannerUrl,
           bio: data.bio,
           themes: data.themesStr
             .split(",")
@@ -78,6 +83,24 @@ export function BandEditForm({
 
   return (
     <div className="space-y-4 max-w-2xl">
+      <div className="grid grid-cols-2 gap-4">
+        <ImageUpload
+          scope="band"
+          ownerId={band.id}
+          value={data.imageUrl}
+          onChange={(url) => set("imageUrl", url)}
+          label="Photo"
+          aspect="square"
+        />
+        <ImageUpload
+          scope="band"
+          ownerId={band.id}
+          value={data.bannerUrl}
+          onChange={(url) => set("bannerUrl", url)}
+          label="Banner"
+          aspect="wide"
+        />
+      </div>
       <Field label="Name">
         <Input value={data.name} onChange={(e) => set("name", e.target.value)} />
       </Field>

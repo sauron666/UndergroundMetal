@@ -9,6 +9,7 @@ import { archiveCitation } from "./handlers/archive-citation";
 import { recheckCitation } from "./handlers/recheck-citation";
 import { embedBand } from "./handlers/embed-band";
 import { sendPush } from "./handlers/send-push";
+import { sendDigest } from "./handlers/send-digest";
 import type { JobKind } from "@prisma/client";
 
 const HANDLERS: Record<JobKind, (payload: unknown) => Promise<unknown>> = {
@@ -16,6 +17,7 @@ const HANDLERS: Record<JobKind, (payload: unknown) => Promise<unknown>> = {
   RECHECK_CITATION: recheckCitation,
   EMBED_BAND: embedBand,
   SEND_PUSH: sendPush,
+  SEND_DIGEST: sendDigest,
   // Reserved: search reindex is currently inline in the API routes.
   REINDEX_SEARCH: async () => ({ noop: true }),
 };

@@ -56,6 +56,12 @@ model User {
   reports         Report[]
   affiliateClicks AffiliateClick[]
   subscription    Subscription?
+  notifications   Notification[]
+  emailPreference EmailPreference?
+  emailLogs       EmailLog[]
+  authTokens      AuthToken[]
+  forumThreads    ForumThread[]
+  forumPosts      ForumPost[]
 
   @@index([role])
 }
@@ -703,6 +709,7 @@ enum JobKind {
   ARCHIVE_CITATION // POST URL to web.archive.org/save/
   RECHECK_CITATION // re-fetch HEAD to confirm citation still resolves
   SEND_PUSH // dispatch a WebPush notification
+  SEND_DIGEST // weekly email digest for one user
   REINDEX_SEARCH // refresh tsvector for one entity
   EMBED_BAND // compute / refresh band embedding vector
 }
@@ -751,6 +758,140 @@ model PushSubscription {
   lastUsedAt DateTime?
 
   @@index([userId])
+}
+
+// =====================================================================
+// NOTIFICATIONS (in-app inbox)
+// =====================================================================
+
+enum NotificationKind {
+  COMMENT_REPLY // someone replied to your comment
+  ARTICLE_PUBLISHED // article you authored or a band you follow was published about
+  SHOW_ANNOUNCED // new show for a followed band
+  ARTICLE_VOTE // someone voted on your article (digested)
+  REPORT_RESOLVED // a report you filed was resolved
+  MENTION // future: @username mentions
+  SYSTEM // platform-wide announcements
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  kind      NotificationKind
+  title     String
+  body      String?          @db.Text
+  url       String?          @db.Text
+  // Loose polymorphic reference for grouping ("comment-<id>", "article-<id>")
+  refKey    String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@index([refKey])
+}
+
+// =====================================================================
+// EMAIL PREFERENCES + DIGEST AUDIT
+// =====================================================================
+
+model EmailPreference {
+  userId           String   @id
+  weeklyDigest     Boolean  @default(true)
+  newShowAlerts    Boolean  @default(true)
+  newArticleAlerts Boolean  @default(true)
+  productUpdates   Boolean  @default(false)
+  unsubscribeToken String   @unique
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Audit row per outbound email so we can support unsubscribe + dedupe digests
+model EmailLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  to         String
+  template   String
+  subject    String
+  // Free-form metadata: digest items count, etc.
+  meta       Json?
+  // Provider message id for support / bounce correlation
+  providerId String?
+  sentAt     DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, sentAt])
+  @@index([template, sentAt])
+}
+
+// One-time tokens for password reset etc.
+model AuthToken {
+  id         String    @id @default(cuid())
+  userId     String
+  kind       String // "password_reset"
+  token      String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+}
+
+// =====================================================================
+// FORUM / DISCUSSION THREADS
+// =====================================================================
+
+enum ForumCategory {
+  GENERAL
+  RECOMMENDATIONS
+  GEAR
+  LOCAL_SCENES
+  FESTIVALS
+  RELEASES
+  META
+}
+
+model ForumThread {
+  id         String        @id @default(cuid())
+  slug       String        @unique
+  title      String
+  body       String        @db.Text
+  category   ForumCategory @default(GENERAL)
+  authorId   String
+  pinned     Boolean       @default(false)
+  locked     Boolean       @default(false)
+  hidden     Boolean       @default(false)
+  // Aggregate counters maintained by app code
+  postCount  Int           @default(0)
+  lastPostAt DateTime      @default(now())
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  posts  ForumPost[]
+
+  @@index([category, pinned, lastPostAt])
+}
+
+model ForumPost {
+  id        String   @id @default(cuid())
+  threadId  String
+  authorId  String
+  body      String   @db.Text
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  thread ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([authorId])
 }
 
 // =====================================================================

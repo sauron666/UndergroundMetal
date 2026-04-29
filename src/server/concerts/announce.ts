@@ -7,10 +7,9 @@
 import { db } from "@/lib/db";
 import { enqueue } from "@/server/jobs/queue";
 import { env } from "@/lib/env";
+import { notifyMany } from "@/server/notifications";
 
 export async function announceShow(showId: string) {
-  if (!env.VAPID_PUBLIC_KEY) return { skipped: "vapid not configured" };
-
   const show = await db.show.findUnique({
     where: { id: showId },
     include: {
@@ -25,29 +24,38 @@ export async function announceShow(showId: string) {
 
   const followers = await db.follow.findMany({
     where: { bandId: { in: bandIds } },
-    select: { userId: true, bandId: true },
+    select: { userId: true },
+    distinct: ["userId"],
   });
   if (followers.length === 0) return { delivered: 0 };
 
-  // Dedupe per user
-  const seen = new Set<string>();
+  const followerIds = followers.map((f) => f.userId);
   const headliner =
     show.bands.find((b) => b.position === 0)?.band.name ??
     show.bands[0]?.band.name ??
     "Multiple bands";
 
-  let queued = 0;
-  for (const f of followers) {
-    if (seen.has(f.userId)) continue;
-    seen.add(f.userId);
-    await enqueue("SEND_PUSH", {
-      userId: f.userId,
-      title: `${headliner} live in ${show.venue.city}`,
-      body: `${new Date(show.date).toLocaleDateString()} · ${show.venue.name}`,
-      url: `${env.NEXT_PUBLIC_APP_URL}/concerts/${show.slug}`,
-      tag: `show-${show.id}`,
-    });
-    queued += 1;
+  // In-app inbox always
+  await notifyMany(followerIds, {
+    kind: "SHOW_ANNOUNCED",
+    title: `${headliner} live in ${show.venue.city}`,
+    body: `${new Date(show.date).toLocaleDateString()} · ${show.venue.name}`,
+    url: `/concerts/${show.slug}`,
+    refKey: `show-${show.id}`,
+  });
+
+  // Web push when configured
+  if (env.VAPID_PUBLIC_KEY) {
+    for (const userId of followerIds) {
+      await enqueue("SEND_PUSH", {
+        userId,
+        title: `${headliner} live in ${show.venue.city}`,
+        body: `${new Date(show.date).toLocaleDateString()} · ${show.venue.name}`,
+        url: `${env.NEXT_PUBLIC_APP_URL}/concerts/${show.slug}`,
+        tag: `show-${show.id}`,
+      });
+    }
   }
-  return { queued };
+
+  return { queued: followerIds.length };
 }

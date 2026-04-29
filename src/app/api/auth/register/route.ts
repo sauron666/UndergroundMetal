@@ -1,7 +1,10 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { sendEmail, isEmailConfigured } from "@/server/email/client";
+import { welcomeEmail } from "@/server/email/templates";
 
 export const runtime = "nodejs";
 
@@ -42,9 +45,42 @@ export async function POST(req: Request) {
   const passwordHash = await bcrypt.hash(password, 12);
 
   const user = await db.user.create({
-    data: { email, username, name: username, passwordHash, role: "READER" },
+    data: {
+      email,
+      username,
+      name: username,
+      passwordHash,
+      role: "READER",
+      emailPreference: {
+        create: {
+          unsubscribeToken: crypto.randomBytes(24).toString("hex"),
+        },
+      },
+    },
     select: { id: true, email: true, username: true },
   });
+
+  // Send welcome email best-effort
+  if (isEmailConfigured()) {
+    const tmpl = welcomeEmail({ name: username });
+    sendEmail({
+      to: email,
+      subject: tmpl.subject,
+      html: tmpl.html,
+      text: tmpl.text,
+    })
+      .then(() =>
+        db.emailLog.create({
+          data: {
+            userId: user.id,
+            to: email,
+            template: "welcome",
+            subject: tmpl.subject,
+          },
+        })
+      )
+      .catch((e) => console.error("[welcome email]", e));
+  }
 
   return NextResponse.json({ user }, { status: 201 });
 }

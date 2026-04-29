@@ -47,6 +47,20 @@ const envSchema = z.object({
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().optional(),
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
+
+  // ---------- Object storage (S3-compatible: AWS S3, Cloudflare R2, Backblaze B2) ----------
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default("auto"),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  // Public CDN base — different from S3_ENDPOINT for R2 (uses *.r2.dev or custom domain)
+  NEXT_PUBLIC_S3_PUBLIC_URL: z.string().url().optional(),
+
+  // ---------- Email (Resend) ----------
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().default("Underground Metal <noreply@undergroundmetal.app>"),
+  EMAIL_REPLY_TO: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

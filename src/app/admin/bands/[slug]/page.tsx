@@ -50,6 +50,8 @@ export default async function AdminBandEdit({
           bio: band.bio,
           themes: band.themes,
           verified: band.verified,
+          imageUrl: band.imageUrl,
+          bannerUrl: band.bannerUrl,
           genreIds: band.genres.map((g) => g.genreId),
         }}
         genres={genres.map((g) => ({ id: g.id, name: g.name }))}

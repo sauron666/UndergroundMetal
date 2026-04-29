@@ -18,6 +18,8 @@ const Body = z.object({
   bio: z.string().nullable(),
   themes: z.array(z.string()).default([]),
   verified: z.boolean(),
+  imageUrl: z.string().url().nullable().optional(),
+  bannerUrl: z.string().url().nullable().optional(),
   genreIds: z.array(z.string()).default([]),
 });
 

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getDictionary, getLocale } from "@/i18n";
 import { LocaleSwitcher } from "./locale-switcher";
+import { NotificationBell } from "./notification-bell";
 
 export async function SiteHeader() {
   const t = await getDictionary();
@@ -57,6 +58,7 @@ export async function SiteHeader() {
               <Search className="h-4 w-4" />
             </Link>
           </Button>
+          <NotificationBell />
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
             <Link href="/auth/signin">
               <User className="h-3.5 w-3.5" />

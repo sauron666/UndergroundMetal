@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { notify } from "@/server/notifications";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,26 @@ export async function POST(req: Request) {
       user: { select: { id: true, username: true, name: true, image: true } },
     },
   });
+
+  // Notify the parent comment's author of a reply (if not self-reply)
+  if (parsed.data.parentId) {
+    const parent = await db.comment.findUnique({
+      where: { id: parsed.data.parentId },
+      include: {
+        article: { select: { slug: true, title: true } },
+      },
+    });
+    if (parent && parent.userId !== session.user.id) {
+      await notify({
+        userId: parent.userId,
+        kind: "COMMENT_REPLY",
+        title: `New reply on "${parent.article.title}"`,
+        body: parsed.data.body.slice(0, 160),
+        url: `/articles/${parent.article.slug}#c-${comment.id}`,
+        refKey: `comment-${comment.id}`,
+      });
+    }
+  }
 
   return NextResponse.json({ comment }, { status: 201 });
 }
