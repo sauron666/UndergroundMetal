@@ -5,7 +5,11 @@ import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, MapPin, Calendar, Disc, Skull } from "lucide-react";
+import { ExternalLink, MapPin, Calendar, Disc, Skull, Sparkles } from "lucide-react";
+import { findSimilarBands } from "@/server/similar";
+import { PushToggle } from "@/components/site/push-toggle";
+import { env } from "@/lib/env";
+import { getDictionary } from "@/i18n";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -55,6 +59,11 @@ export default async function BandPage({ params }: PageProps) {
   const { slug } = await params;
   const band = await getBand(slug);
   if (!band) notFound();
+
+  const [similar, t] = await Promise.all([
+    findSimilarBands(band.id, 6).catch(() => []),
+    getDictionary(),
+  ]);
 
   return (
     <div className="container py-10 md:py-14">
@@ -110,8 +119,9 @@ export default async function BandPage({ params }: PageProps) {
             </p>
           )}
           <div className="mt-6 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm">Follow</Button>
-            <Button variant="ghost" size="sm">Bookmark</Button>
+            <Button variant="outline" size="sm">{t.band.follow}</Button>
+            <Button variant="ghost" size="sm">{t.band.bookmark}</Button>
+            <PushToggle vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
           </div>
         </div>
 
@@ -221,6 +231,50 @@ export default async function BandPage({ params }: PageProps) {
             </div>
           )}
         />
+      )}
+
+      {similar.length > 0 && (
+        <section className="mt-16">
+          <div className="flex items-end justify-between mb-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.3em] text-primary mb-1 flex items-center gap-1.5">
+                <Sparkles className="h-3 w-3" /> {t.band.similar}
+              </p>
+              <h2 className="font-display text-2xl">{t.band.similar_subtitle}</h2>
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {similar.map((s) => (
+              <Link key={s.id} href={`/bands/${s.slug}`} className="group">
+                <Card className="hover:border-primary/60 transition-colors h-full">
+                  <CardHeader>
+                    <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                      {s.name}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      [{s.countryCode ?? "—"}]
+                      {s.formedYear ? ` · ${s.formedYear}` : ""}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {s.genres.slice(0, 2).map((g) => (
+                        <Badge key={g.genreId} variant="outline">
+                          {g.genre.name}
+                        </Badge>
+                      ))}
+                    </div>
+                    {s.reasons.length > 0 && (
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {s.reasons.join(" · ")}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
     </div>
   );

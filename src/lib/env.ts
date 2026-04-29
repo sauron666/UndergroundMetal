@@ -41,6 +41,12 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .default("true")
     .transform((v) => v === "true"),
+
+  // ---------- Web Push (concert alerts) ----------
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

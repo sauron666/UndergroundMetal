@@ -13,6 +13,7 @@
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { slugify } from "@/lib/utils";
+import { announceShow } from "@/server/concerts/announce";
 
 interface BITEvent {
   id: string;
@@ -108,6 +109,9 @@ async function run() {
         });
         itemsNew += 1;
         console.log(`[concerts] +${show.title}`);
+        await announceShow(show.id).catch((e) =>
+          console.error("[concerts] announce failed", e)
+        );
       }
     } catch (e) {
       status = "ERROR";

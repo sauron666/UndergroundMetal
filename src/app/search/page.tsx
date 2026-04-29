@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { search } from "@/server/search";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,43 +19,13 @@ export default async function SearchPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const q = params.q?.trim() ?? "";
 
-  const [bands, articles, shows] = q
-    ? await Promise.all([
-        db.band
-          .findMany({
-            where: { name: { contains: q, mode: "insensitive" } },
-            take: 10,
-            select: { slug: true, name: true, countryCode: true, formedYear: true },
-          })
-          .catch(() => []),
-        db.article
-          .findMany({
-            where: {
-              status: "PUBLISHED",
-              OR: [
-                { title: { contains: q, mode: "insensitive" } },
-                { contentText: { contains: q, mode: "insensitive" } },
-              ],
-            },
-            take: 10,
-            select: { slug: true, title: true, type: true, publishedAt: true },
-          })
-          .catch(() => []),
-        db.show
-          .findMany({
-            where: {
-              date: { gte: new Date() },
-              OR: [
-                { title: { contains: q, mode: "insensitive" } },
-                { venue: { city: { contains: q, mode: "insensitive" } } },
-              ],
-            },
-            take: 10,
-            include: { venue: true },
-          })
-          .catch(() => []),
-      ])
-    : [[], [], []];
+  const results = q
+    ? await search(q, { limit: 10 }).catch(() => ({
+        bands: [],
+        articles: [],
+        shows: [],
+      }))
+    : { bands: [], articles: [], shows: [] };
 
   return (
     <div className="container py-10 md:py-14 max-w-3xl">
@@ -63,37 +33,46 @@ export default async function SearchPage({ searchParams }: PageProps) {
       <form action="/search" className="flex gap-2 mb-10">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input name="q" defaultValue={q} placeholder="Search..." className="pl-9 h-12" />
+          <Input name="q" defaultValue={q} placeholder="Search bands, articles, concerts..." className="pl-9 h-12" />
         </div>
-        <Button type="submit" variant="spike">
-          Go
-        </Button>
+        <Button type="submit" variant="spike">Go</Button>
       </form>
 
       {q ? (
         <div className="space-y-10">
-          <Section title={`Bands (${bands.length})`}>
-            {bands.map((b) => (
-              <Link key={b.slug} href={`/bands/${b.slug}`} className="block">
+          <Section title={`Bands (${results.bands.length})`}>
+            {results.bands.map((b) => (
+              <Link key={b.id} href={`/bands/${b.slug}`} className="block">
                 <Card className="hover:border-primary/60 transition-colors">
-                  <CardContent className="py-3">
-                    <p className="font-medium">{b.name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">
-                      [{b.countryCode ?? "—"}]{" "}
-                      {b.formedYear ? `· ${b.formedYear}` : ""}
-                    </p>
+                  <CardContent className="py-3 flex justify-between items-baseline">
+                    <div>
+                      <p className="font-medium">{b.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">
+                        [{b.countryCode ?? "—"}]
+                        {b.formedYear ? ` · ${b.formedYear}` : ""}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      {b.rank.toFixed(2)}
+                    </span>
                   </CardContent>
                 </Card>
               </Link>
             ))}
           </Section>
-          <Section title={`Articles (${articles.length})`}>
-            {articles.map((a) => (
-              <Link key={a.slug} href={`/articles/${a.slug}`} className="block">
+
+          <Section title={`Articles (${results.articles.length})`}>
+            {results.articles.map((a) => (
+              <Link key={a.id} href={`/articles/${a.slug}`} className="block">
                 <Card className="hover:border-primary/60 transition-colors">
                   <CardContent className="py-3">
                     <p className="font-medium">{a.title}</p>
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest">
+                    {a.excerpt && (
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        {a.excerpt}
+                      </p>
+                    )}
+                    <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
                       {a.type.toLowerCase()}
                     </p>
                   </CardContent>
@@ -101,25 +80,32 @@ export default async function SearchPage({ searchParams }: PageProps) {
               </Link>
             ))}
           </Section>
-          <Section title={`Concerts (${shows.length})`}>
-            {shows.map((s) => (
-              <Link key={s.slug} href={`/concerts/${s.slug}`} className="block">
+
+          <Section title={`Concerts (${results.shows.length})`}>
+            {results.shows.map((s) => (
+              <Link key={s.id} href={`/concerts/${s.slug}`} className="block">
                 <Card className="hover:border-primary/60 transition-colors">
                   <CardContent className="py-3">
                     <p className="font-medium">{s.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(s.date).toLocaleDateString()} ·{" "}
-                      {s.venue.name}, {s.venue.city}
+                      {new Date(s.date).toLocaleDateString()} · {s.city}
                     </p>
                   </CardContent>
                 </Card>
               </Link>
             ))}
           </Section>
+
+          {results.bands.length + results.articles.length + results.shows.length === 0 && (
+            <p className="text-muted-foreground text-sm italic">
+              No matches. Try a different spelling or use AI Discovery for fuzzy band searches.
+            </p>
+          )}
         </div>
       ) : (
         <p className="text-muted-foreground text-sm">
-          Enter a term to search bands, articles, and concerts.
+          Search across the catalogue. Typos forgiven via trigram similarity;
+          phrases ranked by Postgres full-text relevance.
         </p>
       )}
     </div>

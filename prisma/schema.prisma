@@ -31,31 +31,31 @@ enum SubscriptionTier {
 }
 
 model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
-  emailVerified   DateTime?
-  name            String?
-  username        String?          @unique
-  passwordHash    String?
-  image           String?
-  bio             String?
-  role            UserRole         @default(READER)
-  tier            SubscriptionTier @default(FREE)
-  stripeCustomerId String?         @unique
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id               String           @id @default(cuid())
+  email            String           @unique
+  emailVerified    DateTime?
+  name             String?
+  username         String?          @unique
+  passwordHash     String?
+  image            String?
+  bio              String?
+  role             UserRole         @default(READER)
+  tier             SubscriptionTier @default(FREE)
+  stripeCustomerId String?          @unique
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  articles      Article[]        @relation("AuthorArticles")
-  edits        ArticleRevision[] @relation("EditorRevisions")
-  comments      Comment[]
-  votes         Vote[]
-  follows       Follow[]
-  bookmarks     Bookmark[]
-  reports       Report[]
+  accounts        Account[]
+  sessions        Session[]
+  articles        Article[]         @relation("AuthorArticles")
+  edits           ArticleRevision[] @relation("EditorRevisions")
+  comments        Comment[]
+  votes           Vote[]
+  follows         Follow[]
+  bookmarks       Bookmark[]
+  reports         Report[]
   affiliateClicks AffiliateClick[]
-  subscription   Subscription?
+  subscription    Subscription?
 
   @@index([role])
 }
@@ -66,12 +66,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?  @db.Text
-  access_token      String?  @db.Text
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?  @db.Text
+  id_token          String? @db.Text
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -96,15 +96,15 @@ model VerificationToken {
 }
 
 model Subscription {
-  id                  String   @id @default(cuid())
-  userId              String   @unique
-  stripeSubscriptionId String  @unique
-  status              String
-  priceId             String
-  currentPeriodEnd    DateTime
-  cancelAtPeriodEnd   Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  stripeSubscriptionId String   @unique
+  status               String
+  priceId              String
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -122,47 +122,47 @@ enum BandStatus {
 }
 
 model Genre {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String   @unique
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String      @unique
   parentId    String?
-  parent      Genre?   @relation("GenreParent", fields: [parentId], references: [id])
-  children    Genre[]  @relation("GenreParent")
-  description String?  @db.Text
+  parent      Genre?      @relation("GenreParent", fields: [parentId], references: [id])
+  children    Genre[]     @relation("GenreParent")
+  description String?     @db.Text
   // Heaviness on a 1-10 scale, helps weighting in discovery
-  heaviness   Int      @default(5)
+  heaviness   Int         @default(5)
   bands       BandGenre[]
-  createdAt   DateTime @default(now())
+  createdAt   DateTime    @default(now())
 }
 
 model Band {
-  id              String     @id @default(cuid())
-  slug            String     @unique
-  name            String
+  id               String     @id @default(cuid())
+  slug             String     @unique
+  name             String
   // For BG archive scope and underground filtering
-  countryCode     String?    // ISO 3166-1 alpha-2
-  city            String?
-  formedYear      Int?
-  endedYear       Int?
-  status          BandStatus @default(UNKNOWN)
+  countryCode      String? // ISO 3166-1 alpha-2
+  city             String?
+  formedYear       Int?
+  endedYear        Int?
+  status           BandStatus @default(UNKNOWN)
   // 1-10. Editor-set tag for "underground" weighting (10 = obscure).
-  undergroundScore Int       @default(5)
+  undergroundScore Int        @default(5)
   // 1-10. Aggregate heaviness derived from genres + manual override.
-  heaviness       Int        @default(5)
-  bio             String?    @db.Text
-  themes          String[]   // free-form lyrical themes: war, occult, nature...
-  imageUrl        String?
-  bannerUrl       String?
-  websiteUrl      String?
-  bandcampUrl     String?
-  spotifyId       String?
-  metalArchivesId Int?       @unique
-  musicbrainzId   String?    @unique
+  heaviness        Int        @default(5)
+  bio              String?    @db.Text
+  themes           String[] // free-form lyrical themes: war, occult, nature...
+  imageUrl         String?
+  bannerUrl        String?
+  websiteUrl       String?
+  bandcampUrl      String?
+  spotifyId        String?
+  metalArchivesId  Int?       @unique
+  musicbrainzId    String?    @unique
   // Aggregated tags from external sources for richer search
-  tags            String[]
-  verified        Boolean    @default(false)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  tags             String[]
+  verified         Boolean    @default(false)
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   genres    BandGenre[]
   members   BandMember[]
@@ -188,12 +188,12 @@ model BandGenre {
 }
 
 model Person {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String  @id @default(cuid())
+  slug        String  @unique
   name        String
   bornYear    Int?
   countryCode String?
-  bio         String?  @db.Text
+  bio         String? @db.Text
 
   bands BandMember[]
 }
@@ -208,13 +208,13 @@ enum MemberRole {
 }
 
 model BandMember {
-  id          String     @id @default(cuid())
-  bandId      String
-  personId    String
-  role        MemberRole
-  current     Boolean    @default(true)
-  fromYear    Int?
-  toYear      Int?
+  id       String     @id @default(cuid())
+  bandId   String
+  personId String
+  role     MemberRole
+  current  Boolean    @default(true)
+  fromYear Int?
+  toYear   Int?
 
   band   Band   @relation(fields: [bandId], references: [id], onDelete: Cascade)
   person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
@@ -296,11 +296,11 @@ model Show {
   posterUrl   String?
   // Lowest published ticket price (in minor currency units)
   priceMinor  Int?
-  currency    String?    // ISO 4217
+  currency    String? // ISO 4217
   ageLimit    Int?
   verified    Boolean    @default(false)
 
-  venue   Venue       @relation(fields: [venueId], references: [id])
+  venue   Venue            @relation(fields: [venueId], references: [id])
   bands   ShowBand[]
   tickets TicketLink[]
   sources ExternalSource[]
@@ -313,12 +313,12 @@ model Show {
 }
 
 model ShowBand {
-  showId    String
-  bandId    String
+  showId   String
+  bandId   String
   // headliner = 0, support = 1+
-  position  Int    @default(0)
-  show      Show   @relation(fields: [showId], references: [id], onDelete: Cascade)
-  band      Band   @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  position Int    @default(0)
+  show     Show   @relation(fields: [showId], references: [id], onDelete: Cascade)
+  band     Band   @relation(fields: [bandId], references: [id], onDelete: Cascade)
 
   @@id([showId, bandId])
   @@index([bandId])
@@ -336,15 +336,15 @@ enum TicketProvider {
 }
 
 model TicketLink {
-  id         String         @id @default(cuid())
-  showId     String
-  provider   TicketProvider
-  url        String         @db.Text
-  priceMinor Int?
-  currency   String?
-  available  Boolean        @default(true)
+  id            String         @id @default(cuid())
+  showId        String
+  provider      TicketProvider
+  url           String         @db.Text
+  priceMinor    Int?
+  currency      String?
+  available     Boolean        @default(true)
   // Affiliate tag appended to outbound URL
-  affiliateTag String?
+  affiliateTag  String?
   lastCheckedAt DateTime?
 
   show Show @relation(fields: [showId], references: [id], onDelete: Cascade)
@@ -436,13 +436,13 @@ model ArticleRevision {
 
 // External or primary source cited inside an article
 model Citation {
-  id        String   @id @default(cuid())
-  articleId String
-  url       String   @db.Text
-  title     String?
-  publisher String?
+  id         String       @id @default(cuid())
+  articleId  String
+  url        String       @db.Text
+  title      String?
+  publisher  String?
   // archive.org snapshot for rot resistance
-  archiveUrl String? @db.Text
+  archiveUrl String?      @db.Text
   // First-hand interview, official statement, secondary press, etc
   kind       CitationKind @default(SECONDARY)
   excerpt    String?      @db.Text
@@ -456,11 +456,11 @@ model Citation {
 }
 
 enum CitationKind {
-  PRIMARY        // band/label/official
-  INTERVIEW      // first-hand interview by author
-  SECONDARY      // press, magazine, blog
-  ACADEMIC       // book, paper
-  ARCHIVAL       // archive.org / wayback
+  PRIMARY // band/label/official
+  INTERVIEW // first-hand interview by author
+  SECONDARY // press, magazine, blog
+  ACADEMIC // book, paper
+  ARCHIVAL // archive.org / wayback
 }
 
 // =====================================================================
@@ -476,10 +476,10 @@ model Comment {
   hidden    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  article  Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id])
-  replies  Comment[] @relation("CommentThread")
+  article Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies Comment[] @relation("CommentThread")
 
   @@index([articleId])
 }
@@ -520,8 +520,8 @@ model Bookmark {
   articleId String?
   createdAt DateTime @default(now())
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  band    Band?    @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  band Band? @relation(fields: [bandId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -540,14 +540,14 @@ enum ReportStatus {
 }
 
 model Report {
-  id           String       @id @default(cuid())
-  reporterId   String
-  target       ReportTarget
-  targetId     String
-  reason       String       @db.Text
-  status       ReportStatus @default(OPEN)
-  articleId    String?
-  createdAt    DateTime     @default(now())
+  id         String       @id @default(cuid())
+  reporterId String
+  target     ReportTarget
+  targetId   String
+  reason     String       @db.Text
+  status     ReportStatus @default(OPEN)
+  articleId  String?
+  createdAt  DateTime     @default(now())
 
   reporter User     @relation(fields: [reporterId], references: [id])
   article  Article? @relation(fields: [articleId], references: [id])
@@ -604,15 +604,15 @@ enum SourceType {
 
 // Generic external reference attached to a Band, Show, etc.
 model ExternalSource {
-  id       String     @id @default(cuid())
-  type     SourceType
+  id         String     @id @default(cuid())
+  type       SourceType
   externalId String?
-  url      String?    @db.Text
-  bandId   String?
-  showId   String?
+  url        String?    @db.Text
+  bandId     String?
+  showId     String?
   // Free-form payload from the source for re-sync
-  raw      Json?
-  fetchedAt DateTime  @default(now())
+  raw        Json?
+  fetchedAt  DateTime   @default(now())
 
   band Band? @relation(fields: [bandId], references: [id], onDelete: Cascade)
   show Show? @relation(fields: [showId], references: [id], onDelete: Cascade)
@@ -634,7 +634,7 @@ enum ScrapeStatus {
 model ScrapeRun {
   id        String       @id @default(cuid())
   source    SourceType
-  target    String       // URL, query, etc.
+  target    String // URL, query, etc.
   status    ScrapeStatus
   itemsSeen Int          @default(0)
   itemsNew  Int          @default(0)
@@ -650,15 +650,15 @@ model ScrapeRun {
 // =====================================================================
 
 model AffiliateClick {
-  id         String         @id @default(cuid())
-  userId     String?
-  ticketId   String?
-  provider   TicketProvider
-  url        String         @db.Text
-  referer    String?
-  userAgent  String?        @db.Text
-  ipHash     String?        // hashed for GDPR
-  createdAt  DateTime       @default(now())
+  id        String         @id @default(cuid())
+  userId    String?
+  ticketId  String?
+  provider  TicketProvider
+  url       String         @db.Text
+  referer   String?
+  userAgent String?        @db.Text
+  ipHash    String? // hashed for GDPR
+  createdAt DateTime       @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -693,4 +693,80 @@ model DiscoveryQuery {
   updatedAt DateTime @updatedAt
 
   @@index([createdAt])
+}
+
+// =====================================================================
+// BACKGROUND JOBS
+// =====================================================================
+
+enum JobKind {
+  ARCHIVE_CITATION // POST URL to web.archive.org/save/
+  RECHECK_CITATION // re-fetch HEAD to confirm citation still resolves
+  SEND_PUSH // dispatch a WebPush notification
+  REINDEX_SEARCH // refresh tsvector for one entity
+  EMBED_BAND // compute / refresh band embedding vector
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+// Lightweight DB-backed queue. The worker (`pnpm worker`) atomically claims
+// jobs via a SELECT ... FOR UPDATE SKIP LOCKED transaction, runs them, and
+// records the outcome. We avoid Redis/BullMQ at this scale; if traffic
+// outgrows that we can swap the implementation behind the same Job model.
+model Job {
+  id          String    @id @default(cuid())
+  kind        JobKind
+  payload     Json
+  status      JobStatus @default(PENDING)
+  runAt       DateTime  @default(now())
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  lastError   String?   @db.Text
+  result      Json?
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  @@index([status, runAt])
+  @@index([kind, status])
+}
+
+// =====================================================================
+// PUSH NOTIFICATIONS (concert alerts for followed bands)
+// =====================================================================
+
+model PushSubscription {
+  id         String    @id @default(cuid())
+  userId     String
+  endpoint   String    @unique @db.Text
+  p256dh     String    @db.Text
+  auth       String    @db.Text
+  userAgent  String?   @db.Text
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+}
+
+// =====================================================================
+// EMBEDDINGS (similar-bands feature)
+// =====================================================================
+
+// We store embeddings as JSON float arrays to avoid requiring the pgvector
+// extension. Cosine similarity is computed in-app on a small candidate set.
+// Switch to pgvector + ivfflat when catalogue exceeds ~50k bands.
+model BandEmbedding {
+  bandId    String   @id
+  // model identifier so we can re-embed on upgrades
+  model     String
+  // serialised float[] (length = dimension), normalised to unit length
+  vector    Json
+  dimension Int
+  digest    String // hash of the input text used to compute the vector
+  updatedAt DateTime @updatedAt
 }

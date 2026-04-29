@@ -149,6 +149,30 @@ Premium tier is a standard Stripe subscription. The webhook flips
 - Authorship is publicly attributed; revisions are kept in `ArticleRevision`.
 - URL archival to archive.org on publication is planned (background job).
 
+## Phase 2 features (added on top of the foundation)
+
+- **Background job queue** (`Job` model + `pnpm worker`). Atomic claim via
+  `SELECT ... FOR UPDATE SKIP LOCKED`. Handlers: `ARCHIVE_CITATION`,
+  `RECHECK_CITATION`, `EMBED_BAND`, `SEND_PUSH`, `REINDEX_SEARCH`. Exponential
+  backoff on failure (1m → 16m, 5 attempts).
+- **archive.org snapshot** of every citation on article publish. The
+  `Citation.archiveUrl` is shown next to the live link, surviving link rot.
+- **Postgres full-text search** (tsvector + GIN + pg_trgm fallback). The
+  `/search` page ranks bands, articles, and shows together. Typos forgiven via
+  trigram similarity. See `prisma/migrations/0001_fts_and_jobs/migration.sql`.
+- **Similar bands** hybrid recommender: cosine similarity over `BandEmbedding`
+  vectors plus Jaccard overlap on genres + themes plus heaviness/underground
+  proximity. Reasons surfaced in the UI ("genre", "scene", "themes").
+- **Web Push concert alerts**. Service worker at `/sw.js`, VAPID-signed
+  notifications via `web-push`. Followers get a push when a new show is added
+  to their followed band. Toggle via `<PushToggle>` on band pages.
+- **i18n EN/BG**. Cookie-based locale (`um.locale`), no URL restructuring,
+  full Bulgarian dictionary in `src/i18n/dictionaries/bg.ts`. `<LocaleSwitcher>`
+  in the header.
+- **Editor moderation actions** at `PATCH /api/admin/articles/:id` (publish /
+  request_changes / reject) — wires into `publishArticle()` which enqueues
+  archival + push jobs.
+
 ## See also
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — deeper technical walkthrough

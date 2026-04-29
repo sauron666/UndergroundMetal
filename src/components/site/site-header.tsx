@@ -2,15 +2,19 @@ import Link from "next/link";
 import { Flame, Search, Ticket, Newspaper, Skull, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getDictionary, getLocale } from "@/i18n";
+import { LocaleSwitcher } from "./locale-switcher";
 
-const navItems = [
-  { href: "/discover", label: "Discover", icon: Flame },
-  { href: "/bands", label: "Bands", icon: Skull },
-  { href: "/concerts", label: "Concerts", icon: Ticket },
-  { href: "/articles", label: "Articles", icon: Newspaper },
-];
+export async function SiteHeader() {
+  const t = await getDictionary();
+  const locale = await getLocale();
+  const navItems = [
+    { href: "/discover", label: t.nav.discover, icon: Flame },
+    { href: "/bands", label: t.nav.bands, icon: Skull },
+    { href: "/concerts", label: t.nav.concerts, icon: Ticket },
+    { href: "/articles", label: t.nav.articles, icon: Newspaper },
+  ];
 
-export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center gap-6">
@@ -46,7 +50,8 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-3 ml-auto">
+          <LocaleSwitcher current={locale} />
           <Button asChild variant="ghost" size="icon" aria-label="Search">
             <Link href="/search">
               <Search className="h-4 w-4" />
@@ -55,11 +60,11 @@ export function SiteHeader() {
           <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex">
             <Link href="/auth/signin">
               <User className="h-3.5 w-3.5" />
-              Sign in
+              {t.nav.signin}
             </Link>
           </Button>
           <Button asChild variant="spike" size="sm" className="hidden sm:inline-flex">
-            <Link href="/discover">Summon</Link>
+            <Link href="/discover">{t.nav.summon}</Link>
           </Button>
         </div>
       </div>
