@@ -1,14 +1,23 @@
 import { db } from "@/lib/db";
 import type { CommentNode } from "@/components/articles/comments";
 
+export type CommentSort = "best" | "new" | "top";
+
 /**
  * Fetch all comments for an article, attach vote aggregates and the current
- * user's vote, and build a nested tree. Hidden comments are kept (rendered
- * as "[hidden]") so reply chains stay coherent.
+ * user's vote, and build a nested tree.
+ *
+ * Sort applies to *root-level* comments only — replies stay chronological
+ * inside each thread.
+ *
+ *   - "best": Wilson lower-bound on (up, up+down). Resists vote-count gaming.
+ *   - "new":  newest first.
+ *   - "top":  raw score (up - down).
  */
 export async function getCommentTree(
   articleId: string,
-  currentUserId: string | null = null
+  currentUserId: string | null = null,
+  sort: CommentSort = "best"
 ): Promise<CommentNode[]> {
   const flat = await db.comment.findMany({
     where: { articleId },
@@ -67,5 +76,33 @@ export async function getCommentTree(
       roots.push(node);
     }
   }
+
+  if (sort === "new") {
+    roots.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  } else if (sort === "top") {
+    roots.sort(
+      (a, b) =>
+        (b.voteUp ?? 0) - (b.voteDown ?? 0) - ((a.voteUp ?? 0) - (a.voteDown ?? 0))
+    );
+  } else {
+    // Wilson lower bound on upvote share. Stable for low-vote comments.
+    const wilson = (up: number, down: number) => {
+      const n = up + down;
+      if (n === 0) return 0;
+      const z = 1.96;
+      const phat = up / n;
+      return (
+        (phat + (z * z) / (2 * n) -
+          z * Math.sqrt((phat * (1 - phat) + (z * z) / (4 * n)) / n)) /
+        (1 + (z * z) / n)
+      );
+    };
+    roots.sort(
+      (a, b) =>
+        wilson(b.voteUp ?? 0, b.voteDown ?? 0) -
+        wilson(a.voteUp ?? 0, a.voteDown ?? 0)
+    );
+  }
+
   return roots;
 }

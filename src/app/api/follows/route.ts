@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { findSimilarBands } from "@/server/similar";
 
 export const runtime = "nodejs";
 
@@ -40,5 +41,53 @@ export async function POST(req: Request) {
   }
 
   const count = await db.follow.count({ where: { bandId } });
-  return NextResponse.json({ ok: true, following: follow, count });
+
+  // On follow, surface a small "you might also dig" set + any upcoming show
+  // for the band you just followed.
+  let suggestions: { slug: string; name: string }[] = [];
+  let upcomingShow:
+    | { slug: string; title: string; city: string; date: string }
+    | null = null;
+
+  if (follow) {
+    const [similars, existing] = await Promise.all([
+      findSimilarBands(bandId, 6).catch(() => []),
+      db.follow.findMany({
+        where: { userId: session.user.id },
+        select: { bandId: true },
+      }),
+    ]);
+    const followedIds = new Set(existing.map((f) => f.bandId));
+    suggestions = similars
+      .filter((s) => !followedIds.has(s.id))
+      .slice(0, 3)
+      .map((s) => ({ slug: s.slug, name: s.name }));
+
+    const show = await db.show
+      .findFirst({
+        where: {
+          date: { gte: new Date() },
+          bands: { some: { bandId } },
+        },
+        include: { venue: true },
+        orderBy: { date: "asc" },
+      })
+      .catch(() => null);
+    if (show) {
+      upcomingShow = {
+        slug: show.slug,
+        title: show.title,
+        city: show.venue.city,
+        date: show.date.toISOString(),
+      };
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    following: follow,
+    count,
+    suggestions,
+    upcomingShow,
+  });
 }

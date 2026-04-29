@@ -49,6 +49,34 @@ export function FollowButton({
       }
       const j = await res.json();
       setCount(j.count);
+
+      if (next) {
+        // Upcoming show beats discovery suggestions; show whichever is more useful
+        if (j.upcomingShow) {
+          toast.success(
+            `Show on ${new Date(j.upcomingShow.date).toLocaleDateString()} in ${j.upcomingShow.city}`,
+            {
+              action: {
+                label: "Details",
+                onClick: () => router.push(`/concerts/${j.upcomingShow.slug}`),
+              },
+            }
+          );
+        } else if (j.suggestions?.length > 0) {
+          const names = j.suggestions
+            .map((s: { name: string }) => s.name)
+            .join(", ");
+          toast.success(`You might also dig: ${names}`, {
+            action: {
+              label: "Open",
+              onClick: () =>
+                router.push(`/bands/${j.suggestions[0].slug}`),
+            },
+          });
+        } else {
+          toast.success("Following");
+        }
+      }
     });
   };
 

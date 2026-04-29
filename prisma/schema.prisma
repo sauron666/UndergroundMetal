@@ -63,6 +63,7 @@ model User {
   forumThreads    ForumThread[]
   forumPosts      ForumPost[]
   commentVotes    CommentVote[]
+  curatedLists    BandList[]
 
   @@index([role])
 }
@@ -179,6 +180,8 @@ model Band {
   follows   Follow[]
   bookmarks Bookmark[]
   sources   ExternalSource[]
+  festivals FestivalBooking[]
+  lists     BandListItem[]
 
   @@index([countryCode])
   @@index([status])
@@ -307,10 +310,11 @@ model Show {
   ageLimit    Int?
   verified    Boolean    @default(false)
 
-  venue   Venue            @relation(fields: [venueId], references: [id])
-  bands   ShowBand[]
-  tickets TicketLink[]
-  sources ExternalSource[]
+  venue    Venue            @relation(fields: [venueId], references: [id])
+  bands    ShowBand[]
+  tickets  TicketLink[]
+  sources  ExternalSource[]
+  festival FestivalShow?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -357,6 +361,146 @@ model TicketLink {
   show Show @relation(fields: [showId], references: [id], onDelete: Cascade)
 
   @@index([showId])
+}
+
+// =====================================================================
+// CURATED LISTS (year-end best-of, scene primers, "if you liked X")
+// =====================================================================
+
+enum ListKind {
+  BEST_OF // year-end best of (typically restricted to one year)
+  PRIMER // "introduction to X scene / subgenre"
+  STAFF_PICK // editorial recommendation
+  USER // user-curated (future, currently editor-only)
+}
+
+model BandList {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  title       String
+  description String?   @db.Text
+  kind        ListKind  @default(STAFF_PICK)
+  year        Int?
+  curatorId   String
+  coverUrl    String?
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  curator User           @relation(fields: [curatorId], references: [id])
+  items   BandListItem[]
+
+  @@index([kind, published])
+  @@index([year])
+}
+
+model BandListItem {
+  listId   String
+  bandId   String
+  position Int     @default(0)
+  note     String? @db.Text
+
+  list BandList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  band Band     @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@id([listId, bandId])
+  @@index([bandId])
+}
+
+// =====================================================================
+// FESTIVALS (multi-day events composed of individual Shows)
+// =====================================================================
+
+enum FestivalStatus {
+  ANNOUNCED
+  CONFIRMED
+  CANCELLED
+  POSTPONED
+  PAST
+}
+
+model Festival {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  name        String
+  // First and last day (inclusive). Individual day Shows still hold full data.
+  startDate   DateTime
+  endDate     DateTime
+  countryCode String
+  city        String
+  venueName   String?
+  websiteUrl  String?
+  posterUrl   String?
+  description String?        @db.Text
+  status      FestivalStatus @default(ANNOUNCED)
+  // 1-10 same scale as Band.undergroundScore. Helps surface DIY fests.
+  undergroundScore Int       @default(5)
+  // Lowest published ticket price in minor units
+  priceMinor  Int?
+  currency    String?
+  verified    Boolean        @default(false)
+
+  // Each band on the line-up may or may not have a Show row tied to it.
+  // We accept "soft" bookings: a band on the bill before the day's set
+  // schedule is finalised. Once schedules are out, Show rows can be linked
+  // through FestivalShow for per-day stage details.
+  bookings  FestivalBooking[]
+  shows     FestivalShow[]
+  tickets   FestivalTicket[]
+  sources   ExternalSource[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([startDate])
+  @@index([countryCode, startDate])
+}
+
+model FestivalBooking {
+  festivalId String
+  bandId     String
+  // Sort key in the line-up grid (0 = headliner)
+  position   Int    @default(99)
+  // Optional: which day of the festival
+  day        Int?
+  // Optional: stage / hall name
+  stage      String?
+
+  festival Festival @relation(fields: [festivalId], references: [id], onDelete: Cascade)
+  band     Band     @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@id([festivalId, bandId])
+  @@index([bandId])
+}
+
+// Optional join from Festival -> already-existing Show rows for per-day data
+model FestivalShow {
+  festivalId String
+  showId     String   @unique
+  day        Int
+
+  festival Festival @relation(fields: [festivalId], references: [id], onDelete: Cascade)
+  show     Show     @relation(fields: [showId], references: [id], onDelete: Cascade)
+
+  @@id([festivalId, showId])
+}
+
+model FestivalTicket {
+  id           String         @id @default(cuid())
+  festivalId   String
+  provider     TicketProvider
+  url          String         @db.Text
+  priceMinor   Int?
+  currency     String?
+  passType     String?        // "3-day", "VIP", "single-day", etc.
+  available    Boolean        @default(true)
+  affiliateTag String?
+  lastCheckedAt DateTime?
+
+  festival Festival @relation(fields: [festivalId], references: [id], onDelete: Cascade)
+
+  @@index([festivalId])
 }
 
 // =====================================================================
@@ -657,16 +801,19 @@ model ExternalSource {
   url        String?    @db.Text
   bandId     String?
   showId     String?
+  festivalId String?
   // Free-form payload from the source for re-sync
   raw        Json?
   fetchedAt  DateTime   @default(now())
 
-  band Band? @relation(fields: [bandId], references: [id], onDelete: Cascade)
-  show Show? @relation(fields: [showId], references: [id], onDelete: Cascade)
+  band     Band?     @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  show     Show?     @relation(fields: [showId], references: [id], onDelete: Cascade)
+  festival Festival? @relation(fields: [festivalId], references: [id], onDelete: Cascade)
 
   @@index([type])
   @@index([bandId])
   @@index([showId])
+  @@index([festivalId])
 }
 
 enum ScrapeStatus {

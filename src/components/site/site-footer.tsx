@@ -9,10 +9,11 @@ const cols: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/discover", label: "AI Discovery" },
       { href: "/bands", label: "Bands" },
       { href: "/concerts", label: "Concerts" },
+      { href: "/festivals", label: "Festivals" },
       { href: "/calendar", label: "Calendar" },
+      { href: "/lists", label: "Lists" },
       { href: "/trending", label: "Trending" },
       { href: "/articles", label: "Articles" },
-      { href: "/genres", label: "Genres" },
     ],
   },
   {

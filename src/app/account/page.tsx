@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "./profile-form";
 import { EmailPrefsForm } from "./email-prefs-form";
 import { PasswordForm } from "./password-form";
+import { DeleteAccount } from "./delete-account";
 
 export const metadata: Metadata = { title: "Account" };
 
@@ -131,6 +132,8 @@ export default async function AccountPage() {
             )}
           </CardContent>
         </Card>
+
+        <DeleteAccount hasPassword={!!user.passwordHash} />
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { getCommentTree } from "@/server/articles/comment-tree";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ sort?: string }>;
 }
 
 async function getArticle(slug: string) {
@@ -60,8 +61,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function ArticlePage({ params }: PageProps) {
+export default async function ArticlePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const { sort: sortParam } = await searchParams;
+  const sort: "best" | "new" | "top" =
+    sortParam === "new" || sortParam === "top" ? sortParam : "best";
   const a = await getArticle(slug);
   if (!a || a.status !== "PUBLISHED") notFound();
 
@@ -70,7 +74,7 @@ export default async function ArticlePage({ params }: PageProps) {
   const isStaff = !!session && ["EDITOR", "ADMIN"].includes(session.user.role);
 
   const [comments, votesUp, votesDown, myVote, myBookmark] = await Promise.all([
-    getCommentTree(a.id, userId),
+    getCommentTree(a.id, userId, sort),
     db.vote.count({ where: { articleId: a.id, value: "UP" } }),
     db.vote.count({ where: { articleId: a.id, value: "DOWN" } }),
     userId
@@ -195,9 +199,11 @@ export default async function ArticlePage({ params }: PageProps) {
 
       <Comments
         articleId={a.id}
+        slug={a.slug}
         initial={comments}
         currentUserId={userId}
         isStaff={isStaff}
+        sort={sort}
       />
     </article>
   );

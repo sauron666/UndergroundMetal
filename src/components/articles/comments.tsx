@@ -23,14 +23,18 @@ export interface CommentNode {
 
 export function Comments({
   articleId,
+  slug,
   initial,
   currentUserId,
   isStaff,
+  sort = "best",
 }: {
   articleId: string;
+  slug?: string;
   initial: CommentNode[];
   currentUserId: string | null;
   isStaff: boolean;
+  sort?: "best" | "new" | "top";
 }) {
   const router = useRouter();
   const [comments, setComments] = useState<CommentNode[]>(initial);
@@ -79,9 +83,28 @@ export function Comments({
 
   return (
     <section className="mt-12 pt-8 border-t border-border/60">
-      <h2 className="font-display text-2xl mb-6 flex items-center gap-2">
-        <MessageSquare className="h-5 w-5 text-primary" /> {total} comment{total === 1 ? "" : "s"}
-      </h2>
+      <div className="flex items-baseline justify-between mb-6 gap-4 flex-wrap">
+        <h2 className="font-display text-2xl flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-primary" /> {total} comment{total === 1 ? "" : "s"}
+        </h2>
+        {slug && (
+          <div className="flex gap-1 text-[10px] uppercase tracking-widest">
+            {(["best", "new", "top"] as const).map((s) => (
+              <a
+                key={s}
+                href={`/articles/${slug}?sort=${s}#comments`}
+                className={
+                  sort === s
+                    ? "px-2.5 py-1 text-primary border border-primary/40 rounded-sm"
+                    : "px-2.5 py-1 text-muted-foreground hover:text-foreground border border-border rounded-sm"
+                }
+              >
+                {s}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
 
       {currentUserId ? (
         <form
