@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, ExternalLink, Skull, Flame, AlertTriangle, Loader2, Sparkles } from "lucide-react";
+import { Search, ExternalLink, Skull, Flame, AlertTriangle, Loader2, Sparkles, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -41,10 +41,30 @@ type Result = {
   cached?: boolean;
 };
 
+interface Filters {
+  countryCodes: string[];
+  minUnderground: number | null;
+  heavinessMin: number;
+  heavinessMax: number;
+  yearFrom: number | null;
+  yearTo: number | null;
+}
+
+const DEFAULT_FILTERS: Filters = {
+  countryCodes: [],
+  minUnderground: null,
+  heavinessMin: 1,
+  heavinessMax: 10,
+  yearFrom: null,
+  yearTo: null,
+};
+
 export function DiscoveryClient({ initialQuery }: { initialQuery: string }) {
   const router = useRouter();
   const params = useSearchParams();
   const [query, setQuery] = useState(initialQuery);
+  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
   const [data, setData] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -54,10 +74,27 @@ export function DiscoveryClient({ initialQuery }: { initialQuery: string }) {
     setError(null);
     startTransition(async () => {
       try {
+        const apiFilters: Record<string, unknown> = {};
+        if (filters.countryCodes.length > 0)
+          apiFilters.countryCodes = filters.countryCodes;
+        if (filters.minUnderground != null)
+          apiFilters.minUnderground = filters.minUnderground;
+        if (filters.heavinessMin > 1 || filters.heavinessMax < 10) {
+          apiFilters.heaviness = {
+            min: filters.heavinessMin,
+            max: filters.heavinessMax,
+          };
+        }
+        if (filters.yearFrom && filters.yearTo) {
+          apiFilters.yearRange = {
+            from: filters.yearFrom,
+            to: filters.yearTo,
+          };
+        }
         const res = await fetch("/api/discover", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ query: q }),
+          body: JSON.stringify({ query: q, filters: apiFilters }),
         });
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
@@ -101,6 +138,15 @@ export function DiscoveryClient({ initialQuery }: { initialQuery: string }) {
           className="border-0 bg-transparent focus-visible:ring-0 h-12"
           disabled={pending}
         />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Filters"
+          onClick={() => setShowFilters((s) => !s)}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+        </Button>
         <Button type="submit" variant="spike" size="lg" disabled={pending}>
           {pending ? (
             <>
@@ -113,6 +159,131 @@ export function DiscoveryClient({ initialQuery }: { initialQuery: string }) {
           )}
         </Button>
       </form>
+
+      {showFilters && (
+        <div className="border border-border rounded-sm p-4 bg-card/40 space-y-4">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+              Country (ISO 2 codes, comma-separated)
+            </p>
+            <Input
+              placeholder="BG, RO, GR"
+              value={filters.countryCodes.join(", ")}
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  countryCodes: e.target.value
+                    .split(",")
+                    .map((s) => s.trim().toUpperCase())
+                    .filter((s) => s.length === 2),
+                })
+              }
+            />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                Heaviness range: {filters.heavinessMin}–{filters.heavinessMax}/10
+              </p>
+              <div className="flex gap-2 items-center">
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  value={filters.heavinessMin}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setFilters({
+                      ...filters,
+                      heavinessMin: v,
+                      heavinessMax: Math.max(v, filters.heavinessMax),
+                    });
+                  }}
+                  className="flex-1 accent-primary"
+                />
+                <input
+                  type="range"
+                  min={1}
+                  max={10}
+                  value={filters.heavinessMax}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setFilters({
+                      ...filters,
+                      heavinessMax: v,
+                      heavinessMin: Math.min(filters.heavinessMin, v),
+                    });
+                  }}
+                  className="flex-1 accent-primary"
+                />
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                Min underground score: {filters.minUnderground ?? "none"}
+              </p>
+              <input
+                type="range"
+                min={0}
+                max={10}
+                value={filters.minUnderground ?? 0}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setFilters({
+                    ...filters,
+                    minUnderground: v === 0 ? null : v,
+                  });
+                }}
+                className="w-full accent-primary"
+              />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                Era from
+              </p>
+              <Input
+                type="number"
+                value={filters.yearFrom ?? ""}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    yearFrom: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                placeholder="e.g. 1985"
+              />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+                Era to
+              </p>
+              <Input
+                type="number"
+                value={filters.yearTo ?? ""}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    yearTo: e.target.value ? Number(e.target.value) : null,
+                  })
+                }
+                placeholder="e.g. 2000"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setFilters(DEFAULT_FILTERS)}
+            >
+              Reset
+            </Button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="flex items-start gap-3 border border-destructive/40 bg-destructive/10 p-4 rounded-sm">

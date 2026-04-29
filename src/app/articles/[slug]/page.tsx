@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils";
 import { ArticleBody } from "./article-body";
 import { Comments } from "@/components/articles/comments";
 import { VoteBar } from "@/components/articles/vote-bar";
+import { BookmarkButton } from "@/components/bookmarks/bookmark-button";
 import { getCommentTree } from "@/server/articles/comment-tree";
 
 interface PageProps {
@@ -53,13 +54,19 @@ export default async function ArticlePage({ params }: PageProps) {
   const userId = session?.user?.id ?? null;
   const isStaff = !!session && ["EDITOR", "ADMIN"].includes(session.user.role);
 
-  const [comments, votesUp, votesDown, myVote] = await Promise.all([
+  const [comments, votesUp, votesDown, myVote, myBookmark] = await Promise.all([
     getCommentTree(a.id),
     db.vote.count({ where: { articleId: a.id, value: "UP" } }),
     db.vote.count({ where: { articleId: a.id, value: "DOWN" } }),
     userId
       ? db.vote.findUnique({
           where: { userId_articleId: { userId, articleId: a.id } },
+        })
+      : null,
+    userId
+      ? db.bookmark.findFirst({
+          where: { userId, articleId: a.id },
+          select: { id: true },
         })
       : null,
   ]);
@@ -78,15 +85,29 @@ export default async function ArticlePage({ params }: PageProps) {
       <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground border-y border-border/60 py-4">
         <span>
           by{" "}
-          <span className="text-foreground font-medium">
-            {a.author.username ?? a.author.name ?? "anon"}
-          </span>
+          {a.author.username ? (
+            <Link
+              href={`/u/${a.author.username}`}
+              className="text-foreground font-medium hover:text-primary"
+            >
+              {a.author.username}
+            </Link>
+          ) : (
+            <span className="text-foreground font-medium">
+              {a.author.name ?? "anon"}
+            </span>
+          )}
         </span>
         <span>{a.publishedAt ? formatDate(a.publishedAt) : ""}</span>
         {a.rating != null && (
           <Badge variant="blood">{a.rating}/100</Badge>
         )}
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <BookmarkButton
+            target={{ articleId: a.id }}
+            initial={!!myBookmark}
+            signedIn={!!userId}
+          />
           <VoteBar
             articleId={a.id}
             initialUp={votesUp}

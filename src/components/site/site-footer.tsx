@@ -16,10 +16,10 @@ const cols: { title: string; links: { href: string; label: string }[] }[] = [
     title: "Community",
     links: [
       { href: "/forum", label: "Forum" },
-      { href: "/auth/signin", label: "Sign in" },
+      { href: "/notifications", label: "Notifications" },
+      { href: "/bookmarks", label: "Bookmarks" },
+      { href: "/account", label: "Account" },
       { href: "/auth/signup", label: "Become an author" },
-      { href: "/contribute", label: "Contribute" },
-      { href: "/guidelines", label: "Editorial guidelines" },
     ],
   },
   {

@@ -9,6 +9,7 @@ import { ExternalLink, MapPin, Calendar, Disc, Skull, Sparkles } from "lucide-re
 import { findSimilarBands } from "@/server/similar";
 import { PushToggle } from "@/components/site/push-toggle";
 import { FollowButton } from "@/components/bands/follow-button";
+import { BookmarkButton } from "@/components/bookmarks/bookmark-button";
 import { env } from "@/lib/env";
 import { getDictionary } from "@/i18n";
 
@@ -64,13 +65,19 @@ export default async function BandPage({ params }: PageProps) {
   const session = await auth();
   const userId = session?.user?.id ?? null;
 
-  const [similar, t, followCount, myFollow] = await Promise.all([
+  const [similar, t, followCount, myFollow, myBookmark] = await Promise.all([
     findSimilarBands(band.id, 6).catch(() => []),
     getDictionary(),
     db.follow.count({ where: { bandId: band.id } }),
     userId
       ? db.follow.findUnique({
           where: { userId_bandId: { userId, bandId: band.id } },
+        })
+      : null,
+    userId
+      ? db.bookmark.findFirst({
+          where: { userId, bandId: band.id },
+          select: { id: true },
         })
       : null,
   ]);
@@ -137,7 +144,18 @@ export default async function BandPage({ params }: PageProps) {
               followLabel={t.band.follow}
               unfollowLabel={t.band.follow}
             />
+            <BookmarkButton
+              target={{ bandId: band.id }}
+              initial={!!myBookmark}
+              signedIn={!!userId}
+            />
             <PushToggle vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
+            <a
+              href={`/api/calendar/band/${band.slug}`}
+              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary self-center"
+            >
+              .ics feed
+            </a>
           </div>
         </div>
 
