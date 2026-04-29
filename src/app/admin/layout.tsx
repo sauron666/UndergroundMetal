@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { Skull, Newspaper, Music, Theater, Megaphone, Activity, Flag, BarChart3 } from "lucide-react";
+import { Skull, Newspaper, Music, Theater, Megaphone, Activity, Flag, BarChart3, CalendarRange, ListChecks } from "lucide-react";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: Activity },
@@ -9,6 +9,8 @@ const NAV = [
   { href: "/admin/moderation", label: "Articles", icon: Newspaper },
   { href: "/admin/bands", label: "Bands", icon: Skull },
   { href: "/admin/genres", label: "Genres", icon: Music },
+  { href: "/admin/festivals", label: "Festivals", icon: CalendarRange },
+  { href: "/admin/lists", label: "Lists", icon: ListChecks },
   { href: "/admin/venues", label: "Venues", icon: Theater },
   { href: "/admin/ads", label: "Ad placements", icon: Megaphone },
   { href: "/admin/scrape-runs", label: "Scrape runs", icon: Activity },

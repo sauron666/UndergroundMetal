@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProfileForm } from "./profile-form";
 import { EmailPrefsForm } from "./email-prefs-form";
 import { PasswordForm } from "./password-form";
+import { TwoFactorForm } from "./twofa-form";
 import { DeleteAccount } from "./delete-account";
 
 export const metadata: Metadata = { title: "Account" };
@@ -99,6 +100,11 @@ export default async function AccountPage() {
             </CardContent>
           </Card>
         )}
+
+        <TwoFactorForm
+          enabled={!!user.totpEnabledAt}
+          hasPassword={!!user.passwordHash}
+        />
 
         <Card>
           <CardHeader>

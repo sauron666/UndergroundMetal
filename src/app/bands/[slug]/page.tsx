@@ -219,7 +219,12 @@ export default async function BandPage({ params }: PageProps) {
         render={(r) => (
           <div className="flex justify-between items-baseline border-b border-border/40 py-3">
             <div>
-              <p className="font-medium">{r.title}</p>
+              <Link
+                href={`/bands/${band.slug}/${r.id}`}
+                className="font-medium hover:text-primary"
+              >
+                {r.title}
+              </Link>
               <p className="text-xs text-muted-foreground uppercase tracking-widest">
                 {r.type.replace("_", " ").toLowerCase()} · {r.year ?? "?"}
               </p>

@@ -42,6 +42,10 @@ model User {
   role             UserRole         @default(READER)
   tier             SubscriptionTier @default(FREE)
   stripeCustomerId String?          @unique
+  // TOTP 2FA. Secret is base32; recoveryCodes are bcrypt-hashed one-time codes.
+  totpSecret       String?
+  totpEnabledAt    DateTime?
+  recoveryCodes    String[]         @default([])
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
@@ -64,6 +68,7 @@ model User {
   forumPosts      ForumPost[]
   commentVotes    CommentVote[]
   curatedLists    BandList[]
+  releaseRatings  ReleaseRating[]
 
   @@index([role])
 }
@@ -257,10 +262,26 @@ model Release {
   trackCount  Int?
   durationSec Int?
 
-  band Band @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  band    Band            @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  ratings ReleaseRating[]
 
   @@index([bandId])
   @@index([year])
+}
+
+model ReleaseRating {
+  id        String   @id @default(cuid())
+  releaseId String
+  userId    String
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  release Release @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([releaseId, userId])
+  @@index([releaseId])
 }
 
 // =====================================================================
