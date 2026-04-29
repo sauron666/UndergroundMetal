@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ArticleBody } from "./article-body";
+import { Comments } from "@/components/articles/comments";
+import { VoteBar } from "@/components/articles/vote-bar";
+import { getCommentTree } from "@/server/articles/comment-tree";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -45,6 +49,21 @@ export default async function ArticlePage({ params }: PageProps) {
   const a = await getArticle(slug);
   if (!a || a.status !== "PUBLISHED") notFound();
 
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+  const isStaff = !!session && ["EDITOR", "ADMIN"].includes(session.user.role);
+
+  const [comments, votesUp, votesDown, myVote] = await Promise.all([
+    getCommentTree(a.id),
+    db.vote.count({ where: { articleId: a.id, value: "UP" } }),
+    db.vote.count({ where: { articleId: a.id, value: "DOWN" } }),
+    userId
+      ? db.vote.findUnique({
+          where: { userId_articleId: { userId, articleId: a.id } },
+        })
+      : null,
+  ]);
+
   return (
     <article className="container py-10 md:py-14 max-w-3xl">
       <Badge variant="rust" className="mb-4">
@@ -67,6 +86,15 @@ export default async function ArticlePage({ params }: PageProps) {
         {a.rating != null && (
           <Badge variant="blood">{a.rating}/100</Badge>
         )}
+        <div className="ml-auto">
+          <VoteBar
+            articleId={a.id}
+            initialUp={votesUp}
+            initialDown={votesDown}
+            initialMine={myVote?.value ?? null}
+            signedIn={!!userId}
+          />
+        </div>
         {a.bands.length > 0 && (
           <span>
             ·{" "}
@@ -127,6 +155,13 @@ export default async function ArticlePage({ params }: PageProps) {
           </ol>
         </section>
       )}
+
+      <Comments
+        articleId={a.id}
+        initial={comments}
+        currentUserId={userId}
+        isStaff={isStaff}
+      />
     </article>
   );
 }

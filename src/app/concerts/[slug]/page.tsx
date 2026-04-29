@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, MapPin, Ticket, Clock } from "lucide-react";
+import { Calendar, MapPin, Ticket, Clock, CalendarPlus } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { providerLabel } from "@/server/affiliate";
 
@@ -73,6 +73,12 @@ export default async function ShowPage({ params }: PageProps) {
             <MapPin className="h-3.5 w-3.5" /> {show.venue.name}, {show.venue.city}
           </span>
           {show.ageLimit && <span>· {show.ageLimit}+</span>}
+          <a
+            href={`/api/calendar/show/${show.slug}`}
+            className="inline-flex items-center gap-1.5 ml-auto hover:text-primary"
+          >
+            <CalendarPlus className="h-3.5 w-3.5" /> Add to calendar
+          </a>
         </div>
       </header>
 

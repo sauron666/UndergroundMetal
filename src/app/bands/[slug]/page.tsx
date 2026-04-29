@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ExternalLink, MapPin, Calendar, Disc, Skull, Sparkles } from "lucide-react";
 import { findSimilarBands } from "@/server/similar";
 import { PushToggle } from "@/components/site/push-toggle";
+import { FollowButton } from "@/components/bands/follow-button";
 import { env } from "@/lib/env";
 import { getDictionary } from "@/i18n";
 
@@ -60,9 +61,18 @@ export default async function BandPage({ params }: PageProps) {
   const band = await getBand(slug);
   if (!band) notFound();
 
-  const [similar, t] = await Promise.all([
+  const session = await auth();
+  const userId = session?.user?.id ?? null;
+
+  const [similar, t, followCount, myFollow] = await Promise.all([
     findSimilarBands(band.id, 6).catch(() => []),
     getDictionary(),
+    db.follow.count({ where: { bandId: band.id } }),
+    userId
+      ? db.follow.findUnique({
+          where: { userId_bandId: { userId, bandId: band.id } },
+        })
+      : null,
   ]);
 
   return (
@@ -119,8 +129,14 @@ export default async function BandPage({ params }: PageProps) {
             </p>
           )}
           <div className="mt-6 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm">{t.band.follow}</Button>
-            <Button variant="ghost" size="sm">{t.band.bookmark}</Button>
+            <FollowButton
+              bandId={band.id}
+              initialFollowing={!!myFollow}
+              initialCount={followCount}
+              signedIn={!!userId}
+              followLabel={t.band.follow}
+              unfollowLabel={t.band.follow}
+            />
             <PushToggle vapidPublicKey={env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null} />
           </div>
         </div>

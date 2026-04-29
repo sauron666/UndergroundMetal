@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DiscoveryHero } from "@/components/site/discovery-hero";
+import { ForYou } from "@/components/site/for-you";
 
 const featurePillars = [
   {
@@ -118,6 +119,9 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* FOR YOU */}
+      <ForYou />
 
       {/* TRUST */}
       <section className="border-y border-border/60 bg-card/30">

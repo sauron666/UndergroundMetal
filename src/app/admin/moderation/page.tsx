@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,19 +9,7 @@ import { formatDate, truncate } from "@/lib/utils";
 export const metadata: Metadata = { title: "Moderation queue" };
 
 export default async function ModerationQueue() {
-  const session = await auth();
-  if (!session?.user) redirect("/auth/signin");
-  if (!["EDITOR", "ADMIN"].includes(session.user.role)) {
-    return (
-      <div className="container py-20 text-center">
-        <h1 className="font-display text-3xl mb-2">Forbidden</h1>
-        <p className="text-muted-foreground">
-          Editor or admin role required.
-        </p>
-      </div>
-    );
-  }
-
+  // Auth + role guard handled by /admin layout
   const [pending, reports] = await Promise.all([
     db.article.findMany({
       where: { status: "IN_REVIEW" },
@@ -43,13 +29,8 @@ export default async function ModerationQueue() {
   ]);
 
   return (
-    <div className="container py-10 md:py-14">
-      <header className="mb-10">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-primary mb-2">
-          ⛧ Editor
-        </p>
-        <h1 className="font-display text-4xl md:text-5xl">Moderation queue</h1>
-      </header>
+    <div>
+      <h1 className="font-display text-3xl mb-6">Moderation queue</h1>
 
       <section className="mb-12">
         <h2 className="font-display text-2xl mb-4">In review ({pending.length})</h2>
