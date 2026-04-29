@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Separator } from "@/components/ui/separator";
+import { NewsletterSignup } from "./newsletter-signup";
 
 const cols: { title: string; links: { href: string; label: string }[] }[] = [
   {
@@ -8,6 +9,8 @@ const cols: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/discover", label: "AI Discovery" },
       { href: "/bands", label: "Bands" },
       { href: "/concerts", label: "Concerts" },
+      { href: "/calendar", label: "Calendar" },
+      { href: "/trending", label: "Trending" },
       { href: "/articles", label: "Articles" },
       { href: "/genres", label: "Genres" },
     ],
@@ -45,6 +48,21 @@ const cols: { title: string; links: { href: string; label: string }[] }[] = [
 export function SiteFooter() {
   return (
     <footer className="border-t border-border/60 mt-16">
+      <div className="container py-10 border-b border-border/60">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.3em] text-primary mb-2">
+              ⛧ Subscribe
+            </p>
+            <h3 className="font-display text-2xl">Weekly underground digest.</h3>
+            <p className="text-sm text-muted-foreground max-w-md mt-1">
+              New articles + concerts in your inbox. No spam, no third-party
+              sharing. Unsubscribe with one click.
+            </p>
+          </div>
+          <NewsletterSignup source="site-footer" />
+        </div>
+      </div>
       <div className="container py-12 grid grid-cols-2 md:grid-cols-5 gap-8">
         <div className="col-span-2 md:col-span-1 space-y-3">
           <Link

@@ -47,13 +47,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const band = await getBand(slug);
   if (!band) return { title: "Band not found" };
+  const description =
+    band.bio ??
+    `${band.name} — ${band.genres.map((g) => g.genre.name).join(", ")}${
+      band.countryCode ? ` from ${band.countryCode}` : ""
+    }.`;
   return {
     title: band.name,
-    description:
-      band.bio ??
-      `${band.name} — ${band.genres.map((g) => g.genre.name).join(", ")}${
-        band.countryCode ? ` from ${band.countryCode}` : ""
-      }.`,
+    description,
+    openGraph: {
+      title: band.name,
+      description,
+      type: "profile",
+      images: [
+        { url: `/og/band/${band.slug}`, width: 1200, height: 630, alt: band.name },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: band.name,
+      description,
+      images: [`/og/band/${band.slug}`],
+    },
   };
 }
 

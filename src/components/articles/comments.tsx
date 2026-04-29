@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { Reply, Trash2, MessageSquare } from "lucide-react";
+import { Reply, Trash2, MessageSquare, ArrowBigUp, ArrowBigDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -15,6 +16,9 @@ export interface CommentNode {
   createdAt: string | Date;
   user: { id: string; username: string | null; name: string | null; image: string | null };
   replies: CommentNode[];
+  voteUp?: number;
+  voteDown?: number;
+  myVote?: "UP" | "DOWN" | null;
 }
 
 export function Comments({
@@ -176,13 +180,24 @@ function CommentItem({
       ) : (
         <p className="text-sm whitespace-pre-wrap leading-relaxed">{comment.body}</p>
       )}
-      {!comment.hidden && depth < 4 && (
-        <button
-          onClick={() => setReplying((r) => !r)}
-          className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary mt-2 inline-flex items-center gap-1"
-        >
-          <Reply className="h-3 w-3" /> Reply
-        </button>
+      {!comment.hidden && (
+        <div className="mt-2 flex items-center gap-3">
+          <CommentVote
+            commentId={comment.id}
+            initialUp={comment.voteUp ?? 0}
+            initialDown={comment.voteDown ?? 0}
+            initialMine={comment.myVote ?? null}
+            signedIn={!!currentUserId}
+          />
+          {depth < 4 && (
+            <button
+              onClick={() => setReplying((r) => !r)}
+              className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary inline-flex items-center gap-1"
+            >
+              <Reply className="h-3 w-3" /> Reply
+            </button>
+          )}
+        </div>
       )}
       {replying && (
         <form
@@ -236,6 +251,86 @@ function CommentItem({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function CommentVote({
+  commentId,
+  initialUp,
+  initialDown,
+  initialMine,
+  signedIn,
+}: {
+  commentId: string;
+  initialUp: number;
+  initialDown: number;
+  initialMine: "UP" | "DOWN" | null;
+  signedIn: boolean;
+}) {
+  const [up, setUp] = useState(initialUp);
+  const [down, setDown] = useState(initialDown);
+  const [mine, setMine] = useState<"UP" | "DOWN" | null>(initialMine);
+  const score = up - down;
+
+  const cast = async (next: "UP" | "DOWN") => {
+    if (!signedIn) {
+      toast.error("Sign in to vote");
+      return;
+    }
+    const value = mine === next ? null : next;
+    const prev = { up, down, mine };
+    let nu = up,
+      nd = down;
+    if (mine === "UP") nu -= 1;
+    if (mine === "DOWN") nd -= 1;
+    if (value === "UP") nu += 1;
+    if (value === "DOWN") nd += 1;
+    setUp(nu);
+    setDown(nd);
+    setMine(value);
+    const res = await fetch(`/api/comments/${commentId}/vote`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ value }),
+    });
+    if (!res.ok) {
+      setUp(prev.up);
+      setDown(prev.down);
+      setMine(prev.mine);
+      toast.error("Vote failed");
+      return;
+    }
+    const j = await res.json();
+    setUp(j.up);
+    setDown(j.down);
+  };
+
+  return (
+    <div className="inline-flex items-center gap-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+      <button
+        onClick={() => cast("UP")}
+        className={cn(
+          "p-1 hover:text-primary",
+          mine === "UP" && "text-primary"
+        )}
+        aria-label="Upvote"
+      >
+        <ArrowBigUp className="h-3.5 w-3.5" />
+      </button>
+      <span className={cn("font-mono px-1", score > 0 && "text-primary", score < 0 && "text-destructive")}>
+        {score >= 0 ? `+${score}` : score}
+      </span>
+      <button
+        onClick={() => cast("DOWN")}
+        className={cn(
+          "p-1 hover:text-destructive",
+          mine === "DOWN" && "text-destructive"
+        )}
+        aria-label="Downvote"
+      >
+        <ArrowBigDown className="h-3.5 w-3.5" />
+      </button>
     </div>
   );
 }

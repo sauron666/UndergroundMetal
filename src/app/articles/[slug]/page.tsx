@@ -9,6 +9,7 @@ import { ArticleBody } from "./article-body";
 import { Comments } from "@/components/articles/comments";
 import { VoteBar } from "@/components/articles/vote-bar";
 import { BookmarkButton } from "@/components/bookmarks/bookmark-button";
+import { ReadTracker } from "@/components/articles/read-tracker";
 import { getCommentTree } from "@/server/articles/comment-tree";
 
 interface PageProps {
@@ -41,6 +42,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "article",
       publishedTime: a.publishedAt?.toISOString(),
       authors: [a.author.username ?? a.author.name ?? "anon"],
+      images: [
+        {
+          url: `/og/article/${a.slug}`,
+          width: 1200,
+          height: 630,
+          alt: a.title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: a.title,
+      description: a.excerpt ?? "",
+      images: [`/og/article/${a.slug}`],
     },
   };
 }
@@ -55,7 +70,7 @@ export default async function ArticlePage({ params }: PageProps) {
   const isStaff = !!session && ["EDITOR", "ADMIN"].includes(session.user.role);
 
   const [comments, votesUp, votesDown, myVote, myBookmark] = await Promise.all([
-    getCommentTree(a.id),
+    getCommentTree(a.id, userId),
     db.vote.count({ where: { articleId: a.id, value: "UP" } }),
     db.vote.count({ where: { articleId: a.id, value: "DOWN" } }),
     userId
@@ -73,6 +88,7 @@ export default async function ArticlePage({ params }: PageProps) {
 
   return (
     <article className="container py-10 md:py-14 max-w-3xl">
+      <ReadTracker articleId={a.id} />
       <Badge variant="rust" className="mb-4">
         {a.type.toLowerCase()}
       </Badge>
