@@ -1,0 +1,132 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
+import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/utils";
+import { ArticleBody } from "./article-body";
+
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+async function getArticle(slug: string) {
+  return db.article
+    .findUnique({
+      where: { slug },
+      include: {
+        author: { select: { name: true, username: true, image: true, bio: true } },
+        bands: { include: { band: { select: { name: true, slug: true } } } },
+        citations: true,
+      },
+    })
+    .catch(() => null);
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const a = await getArticle(slug);
+  if (!a) return { title: "Article not found" };
+  return {
+    title: a.title,
+    description: a.excerpt ?? a.subtitle ?? a.title,
+    openGraph: {
+      title: a.title,
+      description: a.excerpt ?? "",
+      type: "article",
+      publishedTime: a.publishedAt?.toISOString(),
+      authors: [a.author.username ?? a.author.name ?? "anon"],
+    },
+  };
+}
+
+export default async function ArticlePage({ params }: PageProps) {
+  const { slug } = await params;
+  const a = await getArticle(slug);
+  if (!a || a.status !== "PUBLISHED") notFound();
+
+  return (
+    <article className="container py-10 md:py-14 max-w-3xl">
+      <Badge variant="rust" className="mb-4">
+        {a.type.toLowerCase()}
+      </Badge>
+      <h1 className="font-display text-4xl md:text-6xl tracking-tight">
+        {a.title}
+      </h1>
+      {a.subtitle && (
+        <p className="mt-3 text-xl text-muted-foreground">{a.subtitle}</p>
+      )}
+      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground border-y border-border/60 py-4">
+        <span>
+          by{" "}
+          <span className="text-foreground font-medium">
+            {a.author.username ?? a.author.name ?? "anon"}
+          </span>
+        </span>
+        <span>{a.publishedAt ? formatDate(a.publishedAt) : ""}</span>
+        {a.rating != null && (
+          <Badge variant="blood">{a.rating}/100</Badge>
+        )}
+        {a.bands.length > 0 && (
+          <span>
+            ·{" "}
+            {a.bands.map((b, i) => (
+              <span key={b.bandId}>
+                {i > 0 && ", "}
+                <Link
+                  href={`/bands/${b.band.slug}`}
+                  className="text-foreground hover:text-primary"
+                >
+                  {b.band.name}
+                </Link>
+              </span>
+            ))}
+          </span>
+        )}
+      </div>
+
+      <div className="prose prose-invert prose-sm md:prose-base max-w-none mt-8">
+        <ArticleBody content={a.content} />
+      </div>
+
+      {a.citations.length > 0 && (
+        <section className="mt-12 pt-8 border-t border-border/60">
+          <h2 className="font-display text-xl mb-4">Sources</h2>
+          <ol className="space-y-2 list-decimal list-inside text-sm">
+            {a.citations.map((c) => (
+              <li key={c.id} className="text-muted-foreground">
+                <a
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="text-foreground hover:text-primary break-all"
+                >
+                  {c.title ?? c.url}
+                </a>{" "}
+                {c.publisher && (
+                  <span className="italic">— {c.publisher}</span>
+                )}
+                <span className="ml-2 text-[10px] uppercase tracking-widest">
+                  [{c.kind.toLowerCase()}]
+                  {c.archiveUrl && (
+                    <>
+                      {" · "}
+                      <a
+                        href={c.archiveUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-primary"
+                      >
+                        archive
+                      </a>
+                    </>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+    </article>
+  );
+}

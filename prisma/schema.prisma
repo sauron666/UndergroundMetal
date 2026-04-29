@@ -1,0 +1,696 @@
+// Underground Metal - data model
+// Postgres + Prisma. Models cover: bands, releases, members, genres,
+// concerts/venues, articles with sourced citations, users + roles,
+// moderation, scraping audit trail, monetization (subscription, affiliate clicks).
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearchPostgres"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =====================================================================
+// USERS & AUTH
+// =====================================================================
+
+enum UserRole {
+  READER
+  AUTHOR
+  EDITOR
+  ADMIN
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  emailVerified   DateTime?
+  name            String?
+  username        String?          @unique
+  passwordHash    String?
+  image           String?
+  bio             String?
+  role            UserRole         @default(READER)
+  tier            SubscriptionTier @default(FREE)
+  stripeCustomerId String?         @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  articles      Article[]        @relation("AuthorArticles")
+  edits        ArticleRevision[] @relation("EditorRevisions")
+  comments      Comment[]
+  votes         Vote[]
+  follows       Follow[]
+  bookmarks     Bookmark[]
+  reports       Report[]
+  affiliateClicks AffiliateClick[]
+  subscription   Subscription?
+
+  @@index([role])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Subscription {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  stripeSubscriptionId String  @unique
+  status              String
+  priceId             String
+  currentPeriodEnd    DateTime
+  cancelAtPeriodEnd   Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// =====================================================================
+// MUSIC: BANDS, GENRES, RELEASES, MEMBERS
+// =====================================================================
+
+enum BandStatus {
+  ACTIVE
+  ON_HOLD
+  SPLIT_UP
+  CHANGED_NAME
+  UNKNOWN
+}
+
+model Genre {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String   @unique
+  parentId    String?
+  parent      Genre?   @relation("GenreParent", fields: [parentId], references: [id])
+  children    Genre[]  @relation("GenreParent")
+  description String?  @db.Text
+  // Heaviness on a 1-10 scale, helps weighting in discovery
+  heaviness   Int      @default(5)
+  bands       BandGenre[]
+  createdAt   DateTime @default(now())
+}
+
+model Band {
+  id              String     @id @default(cuid())
+  slug            String     @unique
+  name            String
+  // For BG archive scope and underground filtering
+  countryCode     String?    // ISO 3166-1 alpha-2
+  city            String?
+  formedYear      Int?
+  endedYear       Int?
+  status          BandStatus @default(UNKNOWN)
+  // 1-10. Editor-set tag for "underground" weighting (10 = obscure).
+  undergroundScore Int       @default(5)
+  // 1-10. Aggregate heaviness derived from genres + manual override.
+  heaviness       Int        @default(5)
+  bio             String?    @db.Text
+  themes          String[]   // free-form lyrical themes: war, occult, nature...
+  imageUrl        String?
+  bannerUrl       String?
+  websiteUrl      String?
+  bandcampUrl     String?
+  spotifyId       String?
+  metalArchivesId Int?       @unique
+  musicbrainzId   String?    @unique
+  // Aggregated tags from external sources for richer search
+  tags            String[]
+  verified        Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  genres    BandGenre[]
+  members   BandMember[]
+  releases  Release[]
+  shows     ShowBand[]
+  articles  ArticleBand[]
+  follows   Follow[]
+  bookmarks Bookmark[]
+  sources   ExternalSource[]
+
+  @@index([countryCode])
+  @@index([status])
+  @@index([undergroundScore])
+}
+
+model BandGenre {
+  bandId  String
+  genreId String
+  band    Band   @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  genre   Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([bandId, genreId])
+}
+
+model Person {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  bornYear    Int?
+  countryCode String?
+  bio         String?  @db.Text
+
+  bands BandMember[]
+}
+
+enum MemberRole {
+  VOCALS
+  GUITAR
+  BASS
+  DRUMS
+  KEYBOARDS
+  OTHER
+}
+
+model BandMember {
+  id          String     @id @default(cuid())
+  bandId      String
+  personId    String
+  role        MemberRole
+  current     Boolean    @default(true)
+  fromYear    Int?
+  toYear      Int?
+
+  band   Band   @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([bandId])
+  @@index([personId])
+}
+
+enum ReleaseType {
+  FULL_LENGTH
+  EP
+  DEMO
+  SPLIT
+  COMPILATION
+  LIVE
+  SINGLE
+}
+
+model Release {
+  id          String      @id @default(cuid())
+  bandId      String
+  title       String
+  type        ReleaseType
+  releaseDate DateTime?
+  year        Int?
+  coverUrl    String?
+  bandcampUrl String?
+  spotifyId   String?
+  description String?     @db.Text
+  trackCount  Int?
+  durationSec Int?
+
+  band Band @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@index([bandId])
+  @@index([year])
+}
+
+// =====================================================================
+// CONCERTS / SHOWS / VENUES / TICKETS
+// =====================================================================
+
+model Venue {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  city        String
+  region      String?
+  countryCode String
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  capacity    Int?
+  websiteUrl  String?
+  createdAt   DateTime @default(now())
+
+  shows Show[]
+
+  @@index([countryCode, city])
+}
+
+enum ShowStatus {
+  SCHEDULED
+  CANCELLED
+  POSTPONED
+  SOLD_OUT
+  PAST
+}
+
+model Show {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  date        DateTime
+  doorsAt     DateTime?
+  venueId     String
+  status      ShowStatus @default(SCHEDULED)
+  description String?    @db.Text
+  posterUrl   String?
+  // Lowest published ticket price (in minor currency units)
+  priceMinor  Int?
+  currency    String?    // ISO 4217
+  ageLimit    Int?
+  verified    Boolean    @default(false)
+
+  venue   Venue       @relation(fields: [venueId], references: [id])
+  bands   ShowBand[]
+  tickets TicketLink[]
+  sources ExternalSource[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@index([venueId])
+}
+
+model ShowBand {
+  showId    String
+  bandId    String
+  // headliner = 0, support = 1+
+  position  Int    @default(0)
+  show      Show   @relation(fields: [showId], references: [id], onDelete: Cascade)
+  band      Band   @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@id([showId, bandId])
+  @@index([bandId])
+}
+
+enum TicketProvider {
+  TICKETPRO
+  EVENTIM
+  SEETICKETS
+  TICKETMASTER
+  DICE
+  BANDCAMP
+  DIRECT
+  OTHER
+}
+
+model TicketLink {
+  id         String         @id @default(cuid())
+  showId     String
+  provider   TicketProvider
+  url        String         @db.Text
+  priceMinor Int?
+  currency   String?
+  available  Boolean        @default(true)
+  // Affiliate tag appended to outbound URL
+  affiliateTag String?
+  lastCheckedAt DateTime?
+
+  show Show @relation(fields: [showId], references: [id], onDelete: Cascade)
+
+  @@index([showId])
+}
+
+// =====================================================================
+// EDITORIAL: ARTICLES, REVIEWS, NEWS, INTERVIEWS
+// =====================================================================
+
+enum ArticleType {
+  NEWS
+  REVIEW
+  INTERVIEW
+  FEATURE
+  OPINION
+  GUIDE
+  BAND_OF_THE_WEEK
+}
+
+enum ArticleStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+model Article {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  title       String
+  subtitle    String?
+  type        ArticleType
+  status      ArticleStatus @default(DRAFT)
+  excerpt     String?       @db.Text
+  // TipTap JSON content
+  content     Json
+  // Plain text mirror for FTS
+  contentText String?       @db.Text
+  coverUrl    String?
+  // For reviews: 0-100
+  rating      Int?
+  authorId    String
+  publishedAt DateTime?
+  language    String        @default("en") // en | bg | ...
+
+  author    User              @relation("AuthorArticles", fields: [authorId], references: [id])
+  bands     ArticleBand[]
+  citations Citation[]
+  comments  Comment[]
+  votes     Vote[]
+  reports   Report[]
+  revisions ArticleRevision[]
+  reviewLog ModerationEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([type])
+  @@index([authorId])
+}
+
+model ArticleBand {
+  articleId String
+  bandId    String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  band      Band    @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, bandId])
+}
+
+// Snapshot of article on every save - for audit + rollback
+model ArticleRevision {
+  id        String   @id @default(cuid())
+  articleId String
+  editorId  String
+  content   Json
+  note      String?
+  createdAt DateTime @default(now())
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  editor  User    @relation("EditorRevisions", fields: [editorId], references: [id])
+
+  @@index([articleId])
+}
+
+// External or primary source cited inside an article
+model Citation {
+  id        String   @id @default(cuid())
+  articleId String
+  url       String   @db.Text
+  title     String?
+  publisher String?
+  // archive.org snapshot for rot resistance
+  archiveUrl String? @db.Text
+  // First-hand interview, official statement, secondary press, etc
+  kind       CitationKind @default(SECONDARY)
+  excerpt    String?      @db.Text
+  // Validation: was the URL reachable when added?
+  verified   Boolean      @default(false)
+  verifiedAt DateTime?
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+}
+
+enum CitationKind {
+  PRIMARY        // band/label/official
+  INTERVIEW      // first-hand interview by author
+  SECONDARY      // press, magazine, blog
+  ACADEMIC       // book, paper
+  ARCHIVAL       // archive.org / wayback
+}
+
+// =====================================================================
+// COMMUNITY: COMMENTS, VOTES, FOLLOWS, BOOKMARKS, REPORTS
+// =====================================================================
+
+model Comment {
+  id        String   @id @default(cuid())
+  articleId String
+  userId    String
+  parentId  String?
+  body      String   @db.Text
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  article  Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentThread")
+
+  @@index([articleId])
+}
+
+enum VoteValue {
+  UP
+  DOWN
+}
+
+model Vote {
+  id        String    @id @default(cuid())
+  userId    String
+  articleId String
+  value     VoteValue
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, articleId])
+}
+
+model Follow {
+  id        String   @id @default(cuid())
+  userId    String
+  bandId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  band Band @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bandId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  bandId    String?
+  articleId String?
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  band    Band?    @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum ReportTarget {
+  ARTICLE
+  COMMENT
+  BAND
+  SHOW
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  REJECTED
+}
+
+model Report {
+  id           String       @id @default(cuid())
+  reporterId   String
+  target       ReportTarget
+  targetId     String
+  reason       String       @db.Text
+  status       ReportStatus @default(OPEN)
+  articleId    String?
+  createdAt    DateTime     @default(now())
+
+  reporter User     @relation(fields: [reporterId], references: [id])
+  article  Article? @relation(fields: [articleId], references: [id])
+
+  @@index([target, targetId])
+}
+
+// =====================================================================
+// MODERATION & AI VERIFICATION
+// =====================================================================
+
+enum ModerationVerdict {
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+  FLAGGED
+}
+
+model ModerationEvent {
+  id         String            @id @default(cuid())
+  articleId  String
+  // null when AI is the moderator
+  editorId   String?
+  verdict    ModerationVerdict
+  notes      String?           @db.Text
+  // JSON of structured AI findings: factual issues, citation gaps, etc.
+  aiFindings Json?
+  createdAt  DateTime          @default(now())
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([articleId])
+}
+
+// =====================================================================
+// EXTERNAL SOURCES & SCRAPING AUDIT
+// =====================================================================
+
+enum SourceType {
+  MUSICBRAINZ
+  METAL_ARCHIVES
+  SPOTIFY
+  BANDCAMP
+  LASTFM
+  BANDSINTOWN
+  SONGKICK
+  TICKETPRO
+  EVENTIM
+  RSS
+  WIKIPEDIA
+  MANUAL
+  OTHER
+}
+
+// Generic external reference attached to a Band, Show, etc.
+model ExternalSource {
+  id       String     @id @default(cuid())
+  type     SourceType
+  externalId String?
+  url      String?    @db.Text
+  bandId   String?
+  showId   String?
+  // Free-form payload from the source for re-sync
+  raw      Json?
+  fetchedAt DateTime  @default(now())
+
+  band Band? @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  show Show? @relation(fields: [showId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+  @@index([bandId])
+  @@index([showId])
+}
+
+enum ScrapeStatus {
+  OK
+  EMPTY
+  ERROR
+  RATE_LIMITED
+  ROBOTS_BLOCKED
+}
+
+// Audit log of every scraping run for transparency + debugging
+model ScrapeRun {
+  id        String       @id @default(cuid())
+  source    SourceType
+  target    String       // URL, query, etc.
+  status    ScrapeStatus
+  itemsSeen Int          @default(0)
+  itemsNew  Int          @default(0)
+  error     String?      @db.Text
+  startedAt DateTime     @default(now())
+  endedAt   DateTime?
+
+  @@index([source, startedAt])
+}
+
+// =====================================================================
+// MONETIZATION: AFFILIATE TRACKING + AD SLOTS
+// =====================================================================
+
+model AffiliateClick {
+  id         String         @id @default(cuid())
+  userId     String?
+  ticketId   String?
+  provider   TicketProvider
+  url        String         @db.Text
+  referer    String?
+  userAgent  String?        @db.Text
+  ipHash     String?        // hashed for GDPR
+  createdAt  DateTime       @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([provider, createdAt])
+}
+
+model AdPlacement {
+  id        String   @id @default(cuid())
+  slug      String   @unique // e.g. "home-hero", "article-mid"
+  name      String
+  // Stored markup (sanitized) or vendor tag
+  html      String?  @db.Text
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// =====================================================================
+// AI DISCOVERY CACHE
+// =====================================================================
+
+// Cache the LLM's discovery results so repeat queries are cheap
+model DiscoveryQuery {
+  id        String   @id @default(cuid())
+  // sha256 of normalized query+filters
+  hash      String   @unique
+  prompt    String   @db.Text
+  filters   Json
+  result    Json
+  hitCount  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+}

@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Underground Metal — design tokens
+ * Default theme is dark; we offer a subtle "ash" light variant for accessibility.
+ * Palette: bone (#e8e4d8), ash near-black, blood red (#8b0000) accent, rust support.
+ */
+
+@layer base {
+  :root {
+    --background: 0 0% 4%;
+    --foreground: 40 18% 88%;
+
+    --card: 0 0% 6%;
+    --card-foreground: 40 18% 88%;
+
+    --popover: 0 0% 6%;
+    --popover-foreground: 40 18% 88%;
+
+    --primary: 0 100% 27%; /* blood */
+    --primary-foreground: 40 18% 95%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 40 18% 88%;
+
+    --muted: 0 0% 10%;
+    --muted-foreground: 40 8% 60%;
+
+    --accent: 22 60% 30%; /* rust */
+    --accent-foreground: 40 18% 95%;
+
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 16%;
+    --input: 0 0% 14%;
+    --ring: 0 100% 35%;
+
+    --radius: 0.25rem;
+  }
+
+  .light {
+    --background: 40 30% 95%;
+    --foreground: 0 0% 8%;
+    --card: 40 30% 97%;
+    --card-foreground: 0 0% 8%;
+    --popover: 40 30% 97%;
+    --popover-foreground: 0 0% 8%;
+    --primary: 0 100% 27%;
+    --primary-foreground: 40 30% 97%;
+    --secondary: 40 20% 88%;
+    --secondary-foreground: 0 0% 8%;
+    --muted: 40 20% 90%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 22 60% 30%;
+    --accent-foreground: 40 30% 97%;
+    --destructive: 0 84% 45%;
+    --destructive-foreground: 40 30% 97%;
+    --border: 40 10% 80%;
+    --input: 40 10% 85%;
+    --ring: 0 100% 27%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    background-image:
+      radial-gradient(ellipse at top, rgba(196, 30, 30, 0.08), transparent 60%),
+      radial-gradient(ellipse at bottom, rgba(0, 0, 0, 0.6), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.6);
+    color: hsl(var(--primary-foreground));
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+
+  h1 {
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .text-shadow-blood {
+    text-shadow:
+      0 0 12px rgba(196, 30, 30, 0.45),
+      0 0 2px rgba(0, 0, 0, 0.8);
+  }
+
+  .grain::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.18;
+    background-image: var(--tw-gradient-stops, none);
+    @apply bg-noise mix-blend-overlay;
+  }
+
+  .divider-cross {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: hsl(var(--muted-foreground));
+  }
+  .divider-cross::before,
+  .divider-cross::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      hsl(var(--border)),
+      transparent
+    );
+  }
+
+  .ring-blood {
+    box-shadow:
+      0 0 0 1px hsl(var(--border)),
+      0 0 24px -6px rgba(196, 30, 30, 0.4);
+  }
+
+  .btn-spike {
+    clip-path: polygon(
+      0 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%,
+      0 100%, 8px 50%
+    );
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+  }
+}
