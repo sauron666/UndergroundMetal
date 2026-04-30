@@ -16,13 +16,18 @@ export default async function AdminFestivals() {
 
   return (
     <div>
-      <header className="flex items-center justify-between mb-6">
+      <header className="flex items-center justify-between mb-6 gap-2 flex-wrap">
         <h1 className="font-display text-3xl">Festivals</h1>
-        <Button asChild variant="spike">
-          <Link href="/admin/festivals/new">
-            <Plus className="h-3.5 w-3.5" /> New
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/admin/festivals/import">Bulk import</Link>
+          </Button>
+          <Button asChild variant="spike">
+            <Link href="/admin/festivals/new">
+              <Plus className="h-3.5 w-3.5" /> New
+            </Link>
+          </Button>
+        </div>
       </header>
       <div className="border border-border rounded-sm overflow-hidden">
         <table className="w-full text-sm">

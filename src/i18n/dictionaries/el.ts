@@ -1,0 +1,110 @@
+import type { Dictionary } from "./en";
+
+export const el: Dictionary = {
+  nav: {
+    discover: "Ανακάλυψε",
+    bands: "Συγκροτήματα",
+    concerts: "Συναυλίες",
+    articles: "Άρθρα",
+    search: "Αναζήτηση",
+    signin: "Σύνδεση",
+    summon: "Επικαλέσου",
+  },
+  home: {
+    hero_eyebrow: "AI ανακαλύψεις από το underground",
+    hero_title_1: "Σκάψε βαθύτερα από όσο",
+    hero_title_2: "επιτρέπει ο",
+    hero_title_3: "αλγόριθμος.",
+    hero_lede:
+      "Από τους γίγαντες των γηπέδων μέχρι μπάντες με ένα demo που σαπίζει στο Bandcamp από το 2009 — ένας AI orchestrator για το rock και metal underground. Ανακάλυψε συγκροτήματα. Βρες συναυλίες. Διάβασε επιβεβαιωμένα άρθρα με πηγές.",
+    pillars: "Οι τέσσερις πυλώνες",
+    pillars_subtitle: "Μία πλατφόρμα. Ολόκληρη η σκηνή.",
+    cta_title: "Φτιαγμένο για τη σκηνή. Χωρίς εταιρείες δίσκων.",
+    cta_lede:
+      "Συνδέσου για να ακολουθείς μπάντες, να αποθηκεύεις συναυλίες, να γράφεις άρθρα και να ξεκλειδώσεις το αρχείο.",
+  },
+  discover: {
+    title: "Επικαλέσου τις μπάντες που δεν ξέρεις ακόμα.",
+    lede:
+      "Περιέγραψε ήχο, διάθεση, θεματολογία, περιοχή ή εποχή. Ο AI orchestrator μας επιστρέφει δύο επίπεδα — mainstream και βαθύ underground — με επαληθεύσιμες πηγές.",
+    placeholder: "Atmospheric black metal με σλαβική παράδοση",
+    summon: "Επικαλέσου",
+    conjuring: "Επικαλούμαι…",
+    served_from_cache: "Από την cache",
+    mainstream: "Mainstream",
+    mainstream_subtitle: "Πιθανόν τα ξέρεις ήδη",
+    underground: "Underground",
+    underground_subtitle: "Σκάψε βαθύτερα. Κασέτες-demo, τοπικά διαμάντια.",
+    start_with: "Ξεκίνα με:",
+  },
+  bands: {
+    title: "Συγκροτήματα",
+    indexed: "συγκροτήματα στο ευρετήριο · ταξινομημένα κατά underground",
+    bg_archive: "Αρχείο BG",
+    by_country: "Ανά χώρα:",
+    empty_title: "Η κρύπτη είναι άδεια.",
+    empty_lede:
+      "Κανένα συγκρότημα ακόμη. Τρέξε το seed ή χρησιμοποίησε AI ανακαλύψεις.",
+    empty_search: "Κανένα συγκρότημα δεν ταιριάζει με",
+  },
+  concerts: {
+    title: "Συναυλίες",
+    upcoming: "επερχόμενες συναυλίες",
+    empty: "Δεν έχουν προγραμματιστεί συναυλίες.",
+    headliner: "Headliner",
+    lineup: "Line-up",
+    tickets: "Εισιτήρια",
+    no_tickets:
+      "Δεν υπάρχουν links για εισιτήρια. Δες την ιστοσελίδα της αίθουσας.",
+  },
+  articles: {
+    title: "Άρθρα",
+    pitch: "Πρότεινε άρθρο",
+    sources: "Πηγές",
+    empty: "Τίποτα δημοσιευμένο ακόμη.",
+    by: "από",
+  },
+  band: {
+    follow: "Ακολούθησε",
+    bookmark: "Αποθήκευση",
+    discography: "Δισκογραφία",
+    members: "Μέλη",
+    shows: "Συναυλίες",
+    similar: "Ακούγεται σαν…",
+    similar_subtitle: "Συγκροτήματα που μπορεί να σου αρέσουν",
+  },
+  push: {
+    enable: "Ενεργοποίησε ειδοποιήσεις",
+    on: "Ειδοποιήσεις ενεργές",
+  },
+  premium: {
+    title: "Πλήρωσε το διόδιο. Πάρε τα κλειδιά.",
+    lede:
+      "Το Underground Metal παραμένει δωρεάν για όλους. Το Premium χρηματοδοτεί τους servers, τους συντάκτες και ένα μερίδιο για τους συγγραφείς.",
+    monthly: "Μηνιαία",
+    yearly: "Ετήσια",
+    months_free: "2 μήνες δώρο",
+    subscribe: "Εγγραφή",
+    cancel_anytime: "Ακύρωση οποτεδήποτε. Μέσω Stripe.",
+  },
+  footer: {
+    explore: "Εξερεύνησε",
+    community: "Κοινότητα",
+    underground: "Underground",
+    legal: "Νομικά",
+    sign_in: "Σύνδεση",
+    become_author: "Γίνε συγγραφέας",
+    contribute: "Συνεισφορά",
+    guidelines: "Οδηγίες σύνταξης",
+    bg_archive: "Βουλγαρικό αρχείο",
+    zine: "Zine",
+    premium: "Premium",
+    about: "Σχετικά",
+    terms: "Όροι",
+    privacy: "Απόρρητο",
+    dmca: "DMCA",
+    cookies: "Cookies",
+    tagline:
+      "Χαιρετίσματα στο underground · Χωρίς θεούς, χωρίς αφέντες · Μείνε αληθινός",
+  },
+};

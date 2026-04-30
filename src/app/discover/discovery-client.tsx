@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, ExternalLink, Skull, Flame, AlertTriangle, Loader2, Sparkles, SlidersHorizontal } from "lucide-react";
+import { Search, ExternalLink, Skull, Flame, AlertTriangle, Loader2, Sparkles, SlidersHorizontal, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -420,6 +420,22 @@ function BandCard({ band, highlight }: { band: Suggestion; highlight?: boolean }
             </span>
           </p>
         )}
+        {(() => {
+          const bc = band.references.find((r) =>
+            (r.url ?? "").includes("bandcamp.com")
+          );
+          if (!bc) return null;
+          return (
+            <a
+              href={bc.url}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-primary hover:text-blood-glow"
+            >
+              <Play className="h-3 w-3" /> Listen on Bandcamp
+            </a>
+          );
+        })()}
         {band.references.length > 0 && (
           <div className="pt-2 border-t border-border/60 flex flex-wrap gap-2">
             {band.references.slice(0, 4).map((r, i) => (

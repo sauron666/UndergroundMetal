@@ -3,6 +3,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { CalendarRange, MapPin } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -13,19 +15,49 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ country?: string; past?: string }>;
+  searchParams: Promise<{
+    country?: string;
+    past?: string;
+    q?: string;
+    underMin?: string;
+    month?: string;
+  }>;
 }
 
 export default async function FestivalsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const includePast = params.past === "1";
+  const underMin = params.underMin ? Number(params.underMin) : null;
+  const month = params.month && /^\d{4}-\d{2}$/.test(params.month) ? params.month : null;
+
+  const monthStart = month ? new Date(`${month}-01T00:00:00Z`) : null;
+  const monthEnd = monthStart
+    ? new Date(
+        Date.UTC(
+          monthStart.getUTCFullYear(),
+          monthStart.getUTCMonth() + 1,
+          1
+        )
+      )
+    : null;
 
   const festivals = await db.festival
     .findMany({
       where: {
-        ...(includePast ? {} : { endDate: { gte: new Date() } }),
+        ...(includePast
+          ? {}
+          : monthStart
+          ? {
+              startDate: { lt: monthEnd! },
+              endDate: { gte: monthStart },
+            }
+          : { endDate: { gte: new Date() } }),
         ...(params.country
           ? { countryCode: params.country.toUpperCase() }
+          : {}),
+        ...(underMin != null ? { undergroundScore: { gte: underMin } } : {}),
+        ...(params.q
+          ? { name: { contains: params.q, mode: "insensitive" as const } }
           : {}),
         status: { not: "CANCELLED" },
       },
@@ -46,7 +78,7 @@ export default async function FestivalsPage({ searchParams }: PageProps) {
 
   return (
     <div className="container py-10 md:py-14">
-      <header className="flex items-end justify-between mb-8 flex-wrap gap-4">
+      <header className="flex items-end justify-between mb-6 flex-wrap gap-4">
         <div>
           <p className="text-[10px] uppercase tracking-[0.3em] text-primary mb-2 flex items-center gap-1.5">
             <CalendarRange className="h-3 w-3" /> Festivals
@@ -56,7 +88,7 @@ export default async function FestivalsPage({ searchParams }: PageProps) {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {festivals.length} festival{festivals.length === 1 ? "" : "s"}
-            {includePast ? " · including past" : " upcoming"}
+            {includePast ? " · including past" : month ? ` · ${month}` : " upcoming"}
           </p>
         </div>
         <Link
@@ -66,6 +98,69 @@ export default async function FestivalsPage({ searchParams }: PageProps) {
           {includePast ? "Hide past" : "Show past"} →
         </Link>
       </header>
+
+      <form
+        action="/festivals"
+        className="flex flex-wrap gap-2 items-end mb-8 p-3 border border-border rounded-sm"
+      >
+        {includePast && <input type="hidden" name="past" value="1" />}
+        <label className="block">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+            Search
+          </span>
+          <Input
+            name="q"
+            defaultValue={params.q ?? ""}
+            placeholder="Wacken"
+            className="w-44"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+            Country
+          </span>
+          <Input
+            name="country"
+            defaultValue={params.country ?? ""}
+            placeholder="DE"
+            maxLength={2}
+            className="w-20"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+            Month
+          </span>
+          <Input
+            name="month"
+            type="month"
+            defaultValue={params.month ?? ""}
+            className="w-40"
+          />
+        </label>
+        <label className="block">
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+            Min underground
+          </span>
+          <Input
+            name="underMin"
+            type="number"
+            min={1}
+            max={10}
+            defaultValue={params.underMin ?? ""}
+            className="w-20"
+          />
+        </label>
+        <Button type="submit" size="sm" variant="outline" className="self-end">
+          Apply
+        </Button>
+        <Link
+          href="/festivals"
+          className="self-end text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary px-2"
+        >
+          Reset
+        </Link>
+      </form>
 
       {festivals.length === 0 ? (
         <p className="text-center text-muted-foreground italic py-20">

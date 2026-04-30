@@ -69,6 +69,8 @@ model User {
   commentVotes    CommentVote[]
   curatedLists    BandList[]
   releaseRatings  ReleaseRating[]
+  authorApplication       AuthorApplication?  @relation("ApplicationUser")
+  authorApplicationDecisions AuthorApplication[] @relation("ApplicationDecider")
 
   @@index([role])
 }
@@ -379,9 +381,27 @@ model TicketLink {
   affiliateTag  String?
   lastCheckedAt DateTime?
 
-  show Show @relation(fields: [showId], references: [id], onDelete: Cascade)
+  show          Show               @relation(fields: [showId], references: [id], onDelete: Cascade)
+  priceHistory  TicketPriceHistory[]
 
   @@index([showId])
+}
+
+// Append-only price history per ticket link. A new row is recorded only when
+// the observed price differs from the most recent stored one — keeps the
+// table compact while preserving the timeline for charts and "price drop"
+// notifications.
+model TicketPriceHistory {
+  id           String   @id @default(cuid())
+  ticketLinkId String
+  priceMinor   Int
+  currency     String?
+  available    Boolean  @default(true)
+  observedAt   DateTime @default(now())
+
+  ticketLink TicketLink @relation(fields: [ticketLinkId], references: [id], onDelete: Cascade)
+
+  @@index([ticketLinkId, observedAt])
 }
 
 // =====================================================================
@@ -1058,6 +1078,35 @@ model EmailPreference {
   updatedAt        DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// =====================================================================
+// AUTHOR APPLICATIONS (READER -> AUTHOR promotion workflow)
+// =====================================================================
+
+enum AuthorApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+model AuthorApplication {
+  id           String                  @id @default(cuid())
+  userId       String                  @unique
+  status       AuthorApplicationStatus @default(PENDING)
+  pitch        String                  @db.Text
+  samples      String[]                @default([])
+  decisionNote String?                 @db.Text
+  decidedById  String?
+  decidedAt    DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  user      User  @relation("ApplicationUser", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy User? @relation("ApplicationDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
 }
 
 // Audit row per outbound email so we can support unsubscribe + dedupe digests

@@ -13,13 +13,24 @@ import { en, type Dictionary } from "./dictionaries/en";
 import { bg } from "./dictionaries/bg";
 import { de } from "./dictionaries/de";
 import { ru } from "./dictionaries/ru";
+import { pl } from "./dictionaries/pl";
+import { ro } from "./dictionaries/ro";
+import { el } from "./dictionaries/el";
 
-export type Locale = "en" | "bg" | "de" | "ru";
-export const LOCALES: Locale[] = ["en", "bg", "de", "ru"];
+export type Locale = "en" | "bg" | "de" | "ru" | "pl" | "ro" | "el";
+export const LOCALES: Locale[] = ["en", "bg", "de", "ru", "pl", "ro", "el"];
 export const DEFAULT_LOCALE: Locale = "en";
 const COOKIE = "um.locale";
 
-const DICTIONARIES: Record<Locale, Dictionary> = { en, bg, de, ru };
+const DICTIONARIES: Record<Locale, Dictionary> = {
+  en,
+  bg,
+  de,
+  ru,
+  pl,
+  ro,
+  el,
+};
 
 export async function getLocale(): Promise<Locale> {
   const c = await cookies();
@@ -27,7 +38,6 @@ export async function getLocale(): Promise<Locale> {
   if (fromCookie && LOCALES.includes(fromCookie as Locale)) {
     return fromCookie as Locale;
   }
-  // Fall back to Accept-Language
   const h = await headers();
   const accept = h.get("accept-language") ?? "";
   for (const locale of LOCALES) {

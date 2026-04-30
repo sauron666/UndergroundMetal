@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Ticket, Clock, CalendarPlus } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { providerLabel } from "@/server/affiliate";
+import { PriceHistorySparkline } from "@/components/concerts/price-history";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -19,7 +20,14 @@ async function getShow(slug: string) {
       include: {
         venue: true,
         bands: { include: { band: true }, orderBy: { position: "asc" } },
-        tickets: true,
+        tickets: {
+          include: {
+            priceHistory: {
+              orderBy: { observedAt: "asc" },
+              take: 60,
+            },
+          },
+        },
       },
     })
     .catch(() => null);
@@ -101,19 +109,32 @@ export default async function ShowPage({ params }: PageProps) {
                   href={`/api/click?id=${t.id}`}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
-                  className="flex items-center justify-between border border-border p-4 hover:border-primary hover:bg-card/80 transition-colors"
+                  className="flex flex-col gap-2 border border-border p-4 hover:border-primary hover:bg-card/80 transition-colors"
                 >
-                  <div>
-                    <p className="font-medium uppercase tracking-widest text-xs">
-                      {providerLabel(t.provider)}
-                    </p>
-                    {t.priceMinor != null && (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        from {formatPrice(t.priceMinor, t.currency ?? "EUR")}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium uppercase tracking-widest text-xs">
+                        {providerLabel(t.provider)}
                       </p>
-                    )}
+                      {t.priceMinor != null && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          from {formatPrice(t.priceMinor, t.currency ?? "EUR")}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-primary text-sm">→</span>
                   </div>
-                  <span className="text-primary text-sm">→</span>
+                  {t.priceHistory.length > 1 && (
+                    <PriceHistorySparkline
+                      points={t.priceHistory.map((p) => ({
+                        observedAt: p.observedAt,
+                        priceMinor: p.priceMinor,
+                      }))}
+                      currency={t.currency}
+                    />
+                  )}
+                  {/* spacer used to be the chevron */}
+                  <span className="hidden">→</span>
                 </a>
               ))}
             </div>

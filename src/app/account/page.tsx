@@ -143,6 +143,25 @@ export default async function AccountPage() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Data export</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-3">
+            <p className="text-muted-foreground">
+              Download a JSON archive of every piece of data tied to your
+              account — articles, comments, votes, follows, notifications,
+              ratings. GDPR Article 20 compliant.
+            </p>
+            <Link
+              href="/api/account/export"
+              className="inline-flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-widest border border-border rounded-sm hover:border-primary hover:text-primary"
+            >
+              Download my data
+            </Link>
+          </CardContent>
+        </Card>
+
         <DeleteAccount hasPassword={!!user.passwordHash} />
       </div>
     </div>
