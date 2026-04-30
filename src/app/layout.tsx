@@ -62,6 +62,17 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${sans.variable} ${display.variable} ${blackletter.variable} ${mono.variable}`}>
+      <head>
+        {/*
+          No-flash theme bootstrap. Reads localStorage / cookie before paint
+          and applies the .light class so SSR + client agree.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('um.theme');if(!t){var m=document.cookie.match(/(?:^|; )um\\.theme=(light|dark)/);t=m?m[1]:null;}if(t==='light'){document.documentElement.classList.add('light');}}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-screen flex flex-col font-sans">
         <SiteHeader />
         <main className="flex-1">{children}</main>

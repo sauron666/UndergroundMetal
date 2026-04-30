@@ -25,6 +25,18 @@ async function getArticle(slug: string) {
         author: { select: { name: true, username: true, image: true, bio: true } },
         bands: { include: { band: { select: { name: true, slug: true } } } },
         citations: true,
+        series: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            articles: {
+              where: { status: "PUBLISHED" },
+              orderBy: [{ seriesPart: "asc" }, { publishedAt: "asc" }],
+              select: { id: true, slug: true, title: true, seriesPart: true },
+            },
+          },
+        },
       },
     })
     .catch(() => null);
@@ -159,6 +171,40 @@ export default async function ArticlePage({ params, searchParams }: PageProps) {
           </span>
         )}
       </div>
+
+      {a.series && (
+        <aside className="mt-6 border border-border rounded-sm p-4 bg-card/30">
+          <p className="text-[10px] uppercase tracking-[0.3em] text-primary mb-1">
+            ⛧ Series
+            {a.seriesPart != null ? ` · part ${a.seriesPart}` : ""}
+          </p>
+          <Link
+            href={`/series/${a.series.slug}`}
+            className="font-display text-xl hover:text-primary"
+          >
+            {a.series.title}
+          </Link>
+          {a.series.articles.length > 1 && (
+            <ol className="mt-3 text-xs space-y-1">
+              {a.series.articles.map((sa) => (
+                <li key={sa.id}>
+                  <Link
+                    href={`/articles/${sa.slug}`}
+                    className={
+                      sa.id === a.id
+                        ? "text-primary font-medium"
+                        : "text-muted-foreground hover:text-foreground"
+                    }
+                  >
+                    {sa.seriesPart != null ? `${sa.seriesPart}. ` : "· "}
+                    {sa.title}
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          )}
+        </aside>
+      )}
 
       <div className="prose prose-invert prose-sm md:prose-base max-w-none mt-8">
         <ArticleBody content={a.content} />

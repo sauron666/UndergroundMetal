@@ -584,6 +584,9 @@ model Article {
   authorId    String
   publishedAt DateTime?
   language    String        @default("en") // en | bg | ...
+  // Optional series membership for multi-part stories.
+  seriesId    String?
+  seriesPart  Int?
 
   author    User              @relation("AuthorArticles", fields: [authorId], references: [id])
   bands     ArticleBand[]
@@ -595,6 +598,7 @@ model Article {
   reviewLog ModerationEvent[]
   bookmarks Bookmark[]
   reads     ArticleRead[]
+  series    ArticleSeries? @relation(fields: [seriesId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -602,6 +606,21 @@ model Article {
   @@index([status, publishedAt])
   @@index([type])
   @@index([authorId])
+  @@index([seriesId, seriesPart])
+}
+
+model ArticleSeries {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  description String?  @db.Text
+  coverUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  articles Article[]
+
+  @@index([title])
 }
 
 model ArticleBand {

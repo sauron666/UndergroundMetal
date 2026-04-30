@@ -61,6 +61,10 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().default("Underground Metal <noreply@undergroundmetal.app>"),
   EMAIL_REPLY_TO: z.string().optional(),
+
+  // ---------- Embeddings (Voyage AI) ----------
+  VOYAGE_API_KEY: z.string().optional(),
+  VOYAGE_MODEL: z.string().default("voyage-3-large"),
 });
 
 export const env = envSchema.parse(process.env);

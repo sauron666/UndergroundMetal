@@ -51,7 +51,7 @@ export default async function BgArchivePage() {
         </p>
         <div className="mt-6 flex gap-2">
           <Button asChild variant="spike">
-            <Link href="/bands/new">Add a band</Link>
+            <Link href="/contribute">Add a band</Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/discover?q=Bulgarian+underground+metal">

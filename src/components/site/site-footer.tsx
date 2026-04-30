@@ -14,6 +14,7 @@ const cols: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/lists", label: "Lists" },
       { href: "/trending", label: "Trending" },
       { href: "/articles", label: "Articles" },
+      { href: "/people", label: "People" },
     ],
   },
   {
@@ -23,7 +24,8 @@ const cols: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/notifications", label: "Notifications" },
       { href: "/bookmarks", label: "Bookmarks" },
       { href: "/account", label: "Account" },
-      { href: "/auth/signup", label: "Become an author" },
+      { href: "/become-author", label: "Become an author" },
+      { href: "/contribute", label: "Contribute" },
     ],
   },
   {
