@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { sendEmail, isEmailConfigured } from "@/server/email/client";
 import { newsletterConfirmEmail } from "@/server/email/newsletter";
+import { consumeToken, ipKey } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,16 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  // Anti-spam: 10 subscriptions per IP per hour.
+  if (
+    !(await consumeToken({
+      key: ipKey(req, "newsletter"),
+      capacity: 10,
+      refillPerSec: 10 / 3600,
+    }))
+  ) {
+    return NextResponse.json({ ok: true, throttled: true });
+  }
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json(

@@ -71,6 +71,8 @@ model User {
   releaseRatings  ReleaseRating[]
   authorApplication       AuthorApplication?  @relation("ApplicationUser")
   authorApplicationDecisions AuthorApplication[] @relation("ApplicationDecider")
+  dmThreads       DirectMessageThreadMember[]
+  dmMessages      DirectMessage[]
 
   @@index([role])
 }
@@ -681,21 +683,38 @@ enum CitationKind {
 // =====================================================================
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   articleId String
   userId    String
   parentId  String?
-  body      String   @db.Text
-  hidden    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  body      String    @db.Text
+  hidden    Boolean   @default(false)
+  // Audit: timestamp of the last edit (null = never edited)
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
 
-  article Article       @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent  Comment?      @relation("CommentThread", fields: [parentId], references: [id])
-  replies Comment[]     @relation("CommentThread")
-  votes   CommentVote[]
+  article  Article             @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Comment?            @relation("CommentThread", fields: [parentId], references: [id])
+  replies  Comment[]           @relation("CommentThread")
+  votes    CommentVote[]
+  edits    CommentEdit[]
 
   @@index([articleId])
+}
+
+// One row per edit. We keep the previous body so users + moderators can
+// audit changes ("ninja edits"). Append-only.
+model CommentEdit {
+  id        String   @id @default(cuid())
+  commentId String
+  // The body that was REPLACED by this edit (i.e. previous text)
+  previousBody String @db.Text
+  editedAt  DateTime @default(now())
+
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([commentId, editedAt])
 }
 
 model CommentVote {
@@ -997,6 +1016,63 @@ model Job {
 model ScheduleState {
   id        String   @id
   lastRunAt DateTime
+}
+
+// Token-bucket rate limiter state. One row per (key) where key is something
+// like "ip:1.2.3.4:auth" or "user:abc:discover". Updated atomically via
+// raw UPDATE ... WHERE so concurrent requests don't double-spend tokens.
+model RateLimitBucket {
+  key       String   @id
+  tokens    Float
+  // When tokens were last refilled
+  updatedAt DateTime @updatedAt
+}
+
+// =====================================================================
+// DIRECT MESSAGES (1:1 user threads)
+// =====================================================================
+
+model DirectMessageThread {
+  id          String   @id @default(cuid())
+  // Stable canonical key built from sorted member ids so we can detect an
+  // existing thread between two users without a query.
+  canonicalKey String  @unique
+  createdAt   DateTime @default(now())
+  lastMessageAt DateTime @default(now())
+
+  members  DirectMessageThreadMember[]
+  messages DirectMessage[]
+
+  @@index([lastMessageAt])
+}
+
+model DirectMessageThreadMember {
+  threadId String
+  userId   String
+  // Last time this user opened the thread; used to derive unread counts.
+  lastReadAt DateTime?
+  // User-specific archive flag: hide the thread from inbox without deleting.
+  archived Boolean @default(false)
+
+  thread DirectMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([threadId, userId])
+  @@index([userId, archived])
+}
+
+model DirectMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  senderId  String
+  body      String   @db.Text
+  hidden    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  thread DirectMessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender User                @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
 }
 
 // =====================================================================

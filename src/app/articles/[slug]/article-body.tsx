@@ -57,6 +57,21 @@ function renderNode(node: Node, key: string): React.ReactNode {
       return <hr key={key} />;
     case "hardBreak":
       return <br key={key} />;
+    case "image": {
+      const src = (node.attrs?.src as string) ?? "";
+      const alt = (node.attrs?.alt as string) ?? "";
+      if (!src) return null;
+      // eslint-disable-next-line @next/next/no-img-element
+      return (
+        <img
+          key={key}
+          src={src}
+          alt={alt}
+          className="rounded-sm border border-border my-3 max-w-full h-auto"
+          loading="lazy"
+        />
+      );
+    }
     case "text": {
       let el: React.ReactNode = node.text;
       for (const m of node.marks ?? []) {

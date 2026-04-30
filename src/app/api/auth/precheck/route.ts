@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { consumeToken, ipKey } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,20 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  // Anti-bruteforce: 20 password attempts per IP per 10 minutes.
+  if (
+    !(await consumeToken({
+      key: ipKey(req, "auth-precheck"),
+      capacity: 20,
+      refillPerSec: 20 / 600,
+    }))
+  ) {
+    return NextResponse.json(
+      { error: "Too many attempts" },
+      { status: 429 }
+    );
+  }
+
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });

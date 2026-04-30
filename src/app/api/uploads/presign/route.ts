@@ -35,7 +35,9 @@ export async function POST(req: Request) {
   const isStaff = ["EDITOR", "ADMIN"].includes(session.user.role);
   switch (scope) {
     case "user":
-      if (ownerId !== session.user.id) {
+      // "self" is a client-side convenience — accept either the literal "self"
+      // or the actual user id to mean "upload to my own bucket folder".
+      if (ownerId !== "self" && ownerId !== session.user.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       break;
@@ -63,7 +65,8 @@ export async function POST(req: Request) {
   try {
     const presigned = await presignUpload({
       scope: scope as UploadScope,
-      ownerId,
+      // Resolve "self" to the real user id so storage keys remain stable.
+      ownerId: ownerId === "self" ? session.user.id : ownerId,
       contentType,
       contentLength,
     });

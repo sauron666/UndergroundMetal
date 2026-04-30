@@ -6,7 +6,8 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
-import { Bold, Italic, List, ListOrdered, Quote, Link2, Heading2, Heading3, Plus, Trash2, ShieldCheck } from "lucide-react";
+import Image from "@tiptap/extension-image";
+import { Bold, Italic, List, ListOrdered, Quote, Link2, Heading2, Heading3, Plus, Trash2, ShieldCheck, ImagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,6 +49,9 @@ export function ArticleEditor() {
     extensions: [
       StarterKit,
       Link.configure({ openOnClick: false }),
+      Image.configure({
+        HTMLAttributes: { class: "rounded-sm border border-border my-3" },
+      }),
       Placeholder.configure({ placeholder: "Write your piece..." }),
     ],
     content: "",
@@ -195,6 +199,50 @@ export function ArticleEditor() {
               active={editor.isActive("link")}
             >
               <Link2 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={async () => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = "image/*";
+                input.onchange = async () => {
+                  const file = input.files?.[0];
+                  if (!file) return;
+                  toast.message("Uploading...");
+                  // Use the user scope so any signed-in author can upload
+                  // — server applies S3 presign with their userId.
+                  const presignRes = await fetch("/api/uploads/presign", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({
+                      scope: "user",
+                      ownerId: "self",
+                      contentType: file.type,
+                      contentLength: file.size,
+                    }),
+                  });
+                  if (!presignRes.ok) {
+                    const j = await presignRes.json().catch(() => ({}));
+                    toast.error(j.error ?? "Presign failed");
+                    return;
+                  }
+                  const { uploadUrl, publicUrl } = await presignRes.json();
+                  const put = await fetch(uploadUrl, {
+                    method: "PUT",
+                    body: file,
+                    headers: { "content-type": file.type },
+                  });
+                  if (!put.ok) {
+                    toast.error("Upload failed");
+                    return;
+                  }
+                  editor.chain().focus().setImage({ src: publicUrl }).run();
+                  toast.success("Inserted");
+                };
+                input.click();
+              }}
+            >
+              <ImagePlus className="h-3.5 w-3.5" />
             </ToolbarButton>
           </div>
         )}

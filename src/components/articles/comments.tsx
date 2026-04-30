@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
-import { Reply, Trash2, MessageSquare, ArrowBigUp, ArrowBigDown } from "lucide-react";
+import { Reply, Trash2, MessageSquare, ArrowBigUp, ArrowBigDown, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,7 @@ export interface CommentNode {
   body: string;
   hidden: boolean;
   createdAt: string | Date;
+  editedAt?: string | Date | null;
   user: { id: string; username: string | null; name: string | null; image: string | null };
   replies: CommentNode[];
   voteUp?: number;
@@ -174,10 +175,17 @@ function CommentItem({
 }) {
   const [replying, setReplying] = useState(false);
   const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState(comment.body);
+  const [body, setBody] = useState(comment.body);
+  const [editedAt, setEditedAt] = useState<string | Date | null | undefined>(
+    comment.editedAt
+  );
 
   const author = comment.user.username ?? comment.user.name ?? "anon";
   const created = formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true });
   const canRemove = !comment.hidden && (comment.user.id === currentUserId || isStaff);
+  const canEdit = !comment.hidden && comment.user.id === currentUserId;
 
   return (
     <div
@@ -188,20 +196,81 @@ function CommentItem({
         <span className="text-foreground font-medium">{author}</span>
         <span>·</span>
         <span>{created}</span>
-        {canRemove && (
-          <button
-            onClick={() => onDelete(comment.id)}
-            className="ml-auto hover:text-destructive"
-            aria-label="Hide"
-          >
-            <Trash2 className="h-3 w-3" />
-          </button>
+        {editedAt && (
+          <span className="italic text-[10px]" title={String(editedAt)}>
+            (edited)
+          </span>
         )}
+        <div className="ml-auto flex items-center gap-1">
+          {canEdit && !editing && (
+            <button
+              onClick={() => {
+                setEditing(true);
+                setEditDraft(body);
+              }}
+              className="hover:text-foreground"
+              aria-label="Edit"
+            >
+              <Pencil className="h-3 w-3" />
+            </button>
+          )}
+          {canRemove && (
+            <button
+              onClick={() => onDelete(comment.id)}
+              className="hover:text-destructive"
+              aria-label="Hide"
+            >
+              <Trash2 className="h-3 w-3" />
+            </button>
+          )}
+        </div>
       </div>
       {comment.hidden ? (
         <p className="text-sm italic text-muted-foreground">[comment hidden]</p>
+      ) : editing ? (
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const trimmed = editDraft.trim();
+            if (!trimmed) return;
+            const res = await fetch("/api/comments", {
+              method: "PATCH",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ id: comment.id, body: trimmed }),
+            });
+            if (!res.ok) {
+              toast.error("Edit failed");
+              return;
+            }
+            setBody(trimmed);
+            setEditedAt(new Date().toISOString());
+            setEditing(false);
+          }}
+          className="space-y-2 mb-1"
+        >
+          <Textarea
+            value={editDraft}
+            onChange={(e) => setEditDraft(e.target.value)}
+            rows={3}
+            autoFocus
+            maxLength={4000}
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditing(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="outline" size="sm">
+              Save
+            </Button>
+          </div>
+        </form>
       ) : (
-        <p className="text-sm whitespace-pre-wrap leading-relaxed">{comment.body}</p>
+        <p className="text-sm whitespace-pre-wrap leading-relaxed">{body}</p>
       )}
       {!comment.hidden && (
         <div className="mt-2 flex items-center gap-3">

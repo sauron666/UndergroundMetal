@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { auth } from "@/auth";
 import { discover, attachLocalBands, DiscoveryFiltersSchema } from "@/server/ai/discovery";
+import { consumeToken, ipKey, userKey } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +13,23 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  // Rate limit before parsing or hitting the LLM. Anonymous: 10 reqs/hour
+  // per IP. Signed-in: 60 reqs/hour. Premium: 240/hour.
+  const session = await auth();
+  const tier = session?.user?.tier ?? "FREE";
+  const cfg = !session?.user
+    ? { capacity: 10, refillPerSec: 10 / 3600, key: ipKey(req, "discover") }
+    : tier === "PREMIUM"
+    ? { capacity: 240, refillPerSec: 240 / 3600, key: userKey(session.user.id, "discover") }
+    : { capacity: 60, refillPerSec: 60 / 3600, key: userKey(session.user.id, "discover") };
+
+  if (!(await consumeToken(cfg))) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Try again shortly." },
+      { status: 429 }
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();

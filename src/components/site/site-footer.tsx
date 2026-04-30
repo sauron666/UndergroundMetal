@@ -22,6 +22,7 @@ const cols: { title: string; links: { href: string; label: string }[] }[] = [
     links: [
       { href: "/forum", label: "Forum" },
       { href: "/notifications", label: "Notifications" },
+      { href: "/messages", label: "Messages" },
       { href: "/bookmarks", label: "Bookmarks" },
       { href: "/account", label: "Account" },
       { href: "/become-author", label: "Become an author" },

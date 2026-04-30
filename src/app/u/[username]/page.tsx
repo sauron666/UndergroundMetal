@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatDistance } from "@/lib/utils";
+import { MessageButton } from "./message-button";
 
 interface PageProps {
   params: Promise<{ username: string }>;
@@ -117,14 +118,18 @@ export default async function ProfilePage({ params }: PageProps) {
             {articleCount === 1 ? "" : "s"} · {follows.length} follow
             {follows.length === 1 ? "" : "s"}
           </p>
-          {isMe && (
-            <Link
-              href="/account"
-              className="text-xs uppercase tracking-widest text-primary hover:text-blood-glow mt-3 inline-block"
-            >
-              Edit profile →
-            </Link>
-          )}
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {isMe ? (
+              <Link
+                href="/account"
+                className="text-xs uppercase tracking-widest text-primary hover:text-blood-glow"
+              >
+                Edit profile →
+              </Link>
+            ) : session?.user ? (
+              <MessageButton username={user.username ?? null} />
+            ) : null}
+          </div>
         </div>
       </header>
 

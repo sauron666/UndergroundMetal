@@ -61,6 +61,7 @@ export async function getCommentTree(
       body: c.body,
       hidden: c.hidden,
       createdAt: c.createdAt.toISOString(),
+      editedAt: c.editedAt ? c.editedAt.toISOString() : null,
       user: c.user,
       replies: [],
       voteUp: upMap.get(c.id) ?? 0,

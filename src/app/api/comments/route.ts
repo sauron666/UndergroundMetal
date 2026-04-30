@@ -81,6 +81,56 @@ export async function POST(req: Request) {
   return NextResponse.json({ comment }, { status: 201 });
 }
 
+const PatchBody = z.object({
+  id: z.string(),
+  body: z.string().min(1).max(4000),
+});
+
+export async function PATCH(req: Request) {
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const parsed = PatchBody.safeParse(await req.json().catch(() => ({})));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 422 });
+  }
+
+  const comment = await db.comment.findUnique({ where: { id: parsed.data.id } });
+  if (!comment) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const isOwner = comment.userId === session.user.id;
+  const isStaff = ["EDITOR", "ADMIN"].includes(session.user.role);
+  if (!isOwner && !isStaff) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  if (comment.hidden) {
+    return NextResponse.json(
+      { error: "Cannot edit hidden comment" },
+      { status: 409 }
+    );
+  }
+  if (comment.body === parsed.data.body) {
+    return NextResponse.json({ ok: true, comment });
+  }
+
+  const updated = await db.$transaction(async (tx) => {
+    await tx.commentEdit.create({
+      data: { commentId: comment.id, previousBody: comment.body },
+    });
+    return tx.comment.update({
+      where: { id: comment.id },
+      data: { body: parsed.data.body, editedAt: new Date() },
+      include: {
+        user: { select: { id: true, username: true, name: true, image: true } },
+      },
+    });
+  });
+
+  return NextResponse.json({ ok: true, comment: updated });
+}
+
 export async function DELETE(req: Request) {
   const session = await auth();
   if (!session?.user) {

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { sendEmail, isEmailConfigured } from "@/server/email/client";
 import { magicLinkEmail } from "@/server/email/magic-link";
+import { consumeToken, ipKey } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,19 @@ const Body = z.object({ email: z.string().email() });
  *   race where the legitimate user clicks an in-flight email.
  */
 export async function POST(req: Request) {
+  // Throttle to 5 magic-link requests / IP / 10 min to avoid mailbomb.
+  if (
+    !(await consumeToken({
+      key: ipKey(req, "magic-start"),
+      capacity: 5,
+      refillPerSec: 5 / 600,
+    }))
+  ) {
+    // Still return 200 so the response shape stays uniform regardless of
+    // throttling, matching the existing "always-200 to avoid enumeration"
+    // behaviour of this endpoint.
+    return NextResponse.json({ ok: true, throttled: true });
+  }
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {
     return NextResponse.json({ ok: true });

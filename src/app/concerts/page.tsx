@@ -76,7 +76,10 @@ export default async function ConcertsPage({ searchParams }: PageProps) {
           </p>
           <h1 className="font-display text-4xl md:text-5xl">Concerts</h1>
           <p className="text-muted-foreground mt-2">
-            {shows.length.toLocaleString()} upcoming shows
+            {shows.length.toLocaleString()} upcoming shows ·{" "}
+            <Link href="/concerts/map" className="text-primary hover:underline">
+              map view →
+            </Link>
           </p>
         </div>
         <form
