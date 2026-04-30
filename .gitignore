@@ -51,3 +51,4 @@ next-env.d.ts
 
 # os
 Thumbs.db
+tests/e2e/.auth/

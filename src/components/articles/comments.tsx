@@ -328,21 +328,83 @@ function CommentItem({
         </form>
       )}
       {comment.replies.length > 0 && (
-        <div className="mt-4 space-y-4">
-          {comment.replies.map((r) => (
-            <CommentItem
-              key={r.id}
-              comment={r}
-              depth={depth + 1}
-              currentUserId={currentUserId}
-              isStaff={isStaff}
-              onReply={onReply}
-              onDelete={onDelete}
-              pending={pending}
-            />
-          ))}
-        </div>
+        <CommentReplies
+          replies={comment.replies}
+          depth={depth + 1}
+          currentUserId={currentUserId}
+          isStaff={isStaff}
+          onReply={onReply}
+          onDelete={onDelete}
+          pending={pending}
+        />
       )}
+    </div>
+  );
+}
+
+/**
+ * Renders a reply branch. Auto-collapses when depth >= 3 to keep the column
+ * width readable; user can expand with one click. Bottom-out indicator at
+ * depth 6 with "continue thread →" so we don't infinite-indent.
+ */
+function CommentReplies({
+  replies,
+  depth,
+  currentUserId,
+  isStaff,
+  onReply,
+  onDelete,
+  pending,
+}: {
+  replies: CommentNode[];
+  depth: number;
+  currentUserId: string | null;
+  isStaff: boolean;
+  onReply: (parentId: string, text: string, reset?: () => void) => void;
+  onDelete: (id: string) => void;
+  pending: boolean;
+}) {
+  const collapsedByDefault = depth >= 3;
+  const [open, setOpen] = useState(!collapsedByDefault);
+
+  if (depth >= 6) {
+    return (
+      <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground border-l border-border/60 pl-4">
+        Continue thread →{" "}
+        <span className="text-foreground">
+          {replies.length} more {replies.length === 1 ? "reply" : "replies"}
+        </span>
+      </div>
+    );
+  }
+
+  if (!open) {
+    const visible = countVisible(replies);
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary border-l border-border/60 pl-4"
+      >
+        Show {visible} {visible === 1 ? "reply" : "replies"}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-4 space-y-4">
+      {replies.map((r) => (
+        <CommentItem
+          key={r.id}
+          comment={r}
+          depth={depth}
+          currentUserId={currentUserId}
+          isStaff={isStaff}
+          onReply={onReply}
+          onDelete={onDelete}
+          pending={pending}
+        />
+      ))}
     </div>
   );
 }
