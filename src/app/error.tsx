@@ -13,6 +13,20 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error);
+    fetch("/api/log/error", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        message: error.message,
+        stack: error.stack,
+        digest: error.digest,
+        url:
+          typeof window !== "undefined" ? window.location.href : undefined,
+        userAgent:
+          typeof navigator !== "undefined" ? navigator.userAgent : undefined,
+      }),
+      keepalive: true,
+    }).catch(() => null);
   }, [error]);
 
   return (

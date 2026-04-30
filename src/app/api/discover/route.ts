@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { discover, attachLocalBands, DiscoveryFiltersSchema } from "@/server/ai/discovery";
 import { consumeToken, ipKey, userKey } from "@/server/security/rate-limit";
+import { captureException } from "@/lib/observability";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
     const enriched = await attachLocalBands(raw);
     return NextResponse.json({ ...enriched, cached: raw.cached });
   } catch (err) {
-    console.error("[discover]", err);
+    captureException(err, { route: "/api/discover", query: parsed.data.query });
     const msg = err instanceof Error ? err.message : "Discovery failed";
     const status = msg.includes("ANTHROPIC_API_KEY") ? 503 : 500;
     return NextResponse.json({ error: msg }, { status });

@@ -36,7 +36,7 @@ export async function trendingBands(window: Window, limit = 12) {
     where: { id: { in: grouped.map((g) => g.bandId) } },
     include: { genres: { include: { genre: true } } },
   });
-  const byId = new Map(bands.map((b) => [b.id, b]));
+  const byId = new Map(bands.map((b) => [b.id, b] as const));
 
   return grouped
     .map((g) => {

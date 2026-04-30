@@ -12,6 +12,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "scrape:news": "tsx src/server/scrapers/run-news.ts",
@@ -19,7 +21,10 @@
     "worker": "tsx src/server/jobs/worker.ts",
     "worker:once": "tsx src/server/jobs/worker.ts --once",
     "embeddings:backfill": "tsx src/server/jobs/backfill-embeddings.ts",
-    "digest:send": "tsx src/server/jobs/run-digest.ts"
+    "digest:send": "tsx src/server/jobs/run-digest.ts",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",
@@ -69,8 +74,11 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@playwright/test": "^1.49.0",
     "@types/leaflet": "^1.9.14",
     "@types/web-push": "^3.6.4",
+    "@vitest/coverage-v8": "^2.1.8",
+    "vitest": "^2.1.8",
     "@types/node": "^22.10.2",
     "@types/react": "19.0.1",
     "@types/react-dom": "19.0.2",
