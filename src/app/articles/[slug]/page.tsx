@@ -90,10 +90,15 @@ export default async function ArticlePage({ params, searchParams }: PageProps) {
   const userId = session?.user?.id ?? null;
   const isStaff = !!session && ["EDITOR", "ADMIN"].includes(session.user.role);
 
-  const [comments, votesUp, votesDown, myVote, myBookmark] = await Promise.all([
+  const [comments, voteAgg, myVote, myBookmark] = await Promise.all([
     getCommentTree(a.id, userId, sort),
-    db.vote.count({ where: { articleId: a.id, value: "UP" } }),
-    db.vote.count({ where: { articleId: a.id, value: "DOWN" } }),
+    // Single groupBy call covers both UP and DOWN — was previously two
+    // separate count() round-trips.
+    db.vote.groupBy({
+      by: ["value"],
+      where: { articleId: a.id },
+      _count: true,
+    }),
     userId
       ? db.vote.findUnique({
           where: { userId_articleId: { userId, articleId: a.id } },
@@ -153,8 +158,8 @@ export default async function ArticlePage({ params, searchParams }: PageProps) {
           />
           <VoteBar
             articleId={a.id}
-            initialUp={votesUp}
-            initialDown={votesDown}
+            initialUp={voteAgg.find((v) => v.value === "UP")?._count ?? 0}
+            initialDown={voteAgg.find((v) => v.value === "DOWN")?._count ?? 0}
             initialMine={myVote?.value ?? null}
             signedIn={!!userId}
           />

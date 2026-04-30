@@ -154,3 +154,23 @@ backups. The schema is small (`prisma migrate diff` produces ~1.4k lines of
 DDL); restoring is not the slow path — re-embedding the band catalogue
 through Voyage/Anthropic is. Keep a periodic export of `BandEmbedding` rows
 on object storage so disaster recovery doesn't burn the LLM budget twice.
+
+### Verification drill
+
+A backup that hasn't been restored is a hope, not a backup. Use
+`scripts/backup-verify.sh` weekly:
+
+```bash
+SOURCE_DATABASE_URL=postgres://ro@db/prod \
+SCRATCH_DATABASE_URL=postgres://admin@db/scratch \
+  ./scripts/backup-verify.sh
+```
+
+It does a full `pg_dump` of the production-style URL, restores into a
+scratch DB, then runs `prisma migrate status` against the result. Exit
+code 0 confirms both that the dump is valid and that the migration
+history matches the live schema.
+
+Schedule it as a Render cron job, GitHub Actions workflow, or a
+once-a-week k8s CronJob. Alert when it fails — that's the early signal
+your backup pipeline is broken.

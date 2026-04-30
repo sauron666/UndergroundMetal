@@ -1,0 +1,64 @@
+name: Lighthouse
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/undergroundmetal_lh
+  DIRECT_URL: postgresql://postgres:postgres@localhost:5432/undergroundmetal_lh
+  AUTH_SECRET: ci-only-not-secret
+  NEXT_PUBLIC_APP_URL: http://localhost:3000
+  NEXT_TELEMETRY_DISABLED: 1
+  NODE_ENV: production
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: undergroundmetal_lh
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prisma generate
+      - run: pnpm exec prisma migrate deploy
+      - run: pnpm exec prisma db seed || true
+      - run: pnpm build
+      - run: pnpm start &
+      - name: Wait for app
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "App did not boot in time" >&2
+          exit 1
+      - uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            http://localhost:3000/
+            http://localhost:3000/discover
+            http://localhost:3000/bands
+            http://localhost:3000/concerts
+            http://localhost:3000/about
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          # Budget thresholds — fail the job below these.
+          configPath: ./.lighthouserc.json

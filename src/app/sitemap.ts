@@ -20,18 +20,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: p === "" ? 1 : 0.7,
   }));
 
+  // Sitemap caps. Splitting into multi-file sitemap index is a future task
+  // when the catalogue exceeds these.
+  const SITEMAP_CAP = 5_000;
   const [bands, articles, shows] = await Promise.all([
-    db.band.findMany({ select: { slug: true, updatedAt: true } }).catch(() => []),
+    db.band
+      .findMany({
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: "desc" },
+        take: SITEMAP_CAP,
+      })
+      .catch(() => []),
     db.article
       .findMany({
         where: { status: "PUBLISHED" },
         select: { slug: true, publishedAt: true, updatedAt: true },
+        orderBy: { publishedAt: "desc" },
+        take: SITEMAP_CAP,
       })
       .catch(() => []),
     db.show
       .findMany({
         where: { date: { gte: new Date() } },
         select: { slug: true, updatedAt: true },
+        orderBy: { date: "asc" },
+        take: SITEMAP_CAP,
       })
       .catch(() => []),
   ]);
