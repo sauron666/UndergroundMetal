@@ -12,18 +12,13 @@
  */
 
 import { env } from "@/lib/env";
+import { normalise } from "@/lib/vector";
 import { getAnthropic, MODELS } from "./anthropic";
 
 export interface EmbeddingResult {
   vector: number[];
   dimension: number;
   model: string;
-}
-
-function normalise(vec: number[]): number[] {
-  const mag = Math.sqrt(vec.reduce((s, x) => s + x * x, 0));
-  if (mag === 0) return vec;
-  return vec.map((x) => x / mag);
 }
 
 async function embedViaVoyage(text: string): Promise<EmbeddingResult> {

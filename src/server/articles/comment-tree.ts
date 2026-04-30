@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { wilsonScore } from "@/lib/scoring";
 import type { CommentNode } from "@/components/articles/comments";
 
 export type CommentSort = "best" | "new" | "top";
@@ -87,21 +88,10 @@ export async function getCommentTree(
     );
   } else {
     // Wilson lower bound on upvote share. Stable for low-vote comments.
-    const wilson = (up: number, down: number) => {
-      const n = up + down;
-      if (n === 0) return 0;
-      const z = 1.96;
-      const phat = up / n;
-      return (
-        (phat + (z * z) / (2 * n) -
-          z * Math.sqrt((phat * (1 - phat) + (z * z) / (4 * n)) / n)) /
-        (1 + (z * z) / n)
-      );
-    };
     roots.sort(
       (a, b) =>
-        wilson(b.voteUp ?? 0, b.voteDown ?? 0) -
-        wilson(a.voteUp ?? 0, a.voteDown ?? 0)
+        wilsonScore(b.voteUp ?? 0, b.voteDown ?? 0) -
+        wilsonScore(a.voteUp ?? 0, a.voteDown ?? 0)
     );
   }
 

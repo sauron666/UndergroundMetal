@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { BandEditForm } from "./form";
 import { ReleasesPanel } from "./releases";
 import { MembersPanel } from "./members";
+import { SpotifyEnrichButton } from "./spotify-enrich";
 
 export default async function AdminBandEdit({
   params,
@@ -34,12 +35,15 @@ export default async function AdminBandEdit({
         <span className="text-foreground">{band.name}</span>
       </nav>
       <h1 className="font-display text-3xl mb-2">{band.name}</h1>
-      <Link
-        href={`/bands/${band.slug}`}
-        className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary mb-6 inline-block"
-      >
-        View public page →
-      </Link>
+      <div className="flex items-center gap-3 mb-6">
+        <Link
+          href={`/bands/${band.slug}`}
+          className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary"
+        >
+          View public page →
+        </Link>
+        <SpotifyEnrichButton bandId={band.id} />
+      </div>
       <div className="grid lg:grid-cols-[1fr_360px] gap-6">
         <BandEditForm
           band={{

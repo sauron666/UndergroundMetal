@@ -15,6 +15,8 @@ const cols: { title: string; links: { href: string; label: string }[] }[] = [
       { href: "/trending", label: "Trending" },
       { href: "/articles", label: "Articles" },
       { href: "/people", label: "People" },
+      { href: "/feed/articles.xml", label: "RSS articles" },
+      { href: "/feed/concerts.xml", label: "RSS concerts" },
     ],
   },
   {

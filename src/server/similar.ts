@@ -14,6 +14,7 @@
  */
 
 import { db } from "@/lib/db";
+import { jaccard, dot as cosine } from "@/lib/vector";
 
 interface ScoredCandidate {
   bandId: string;
@@ -29,23 +30,6 @@ const W = {
   underground: 0.05,
   country: 0.05,
 };
-
-function jaccard<T>(a: T[], b: T[]): number {
-  if (a.length === 0 && b.length === 0) return 0;
-  const A = new Set(a);
-  const B = new Set(b);
-  let inter = 0;
-  for (const x of A) if (B.has(x)) inter += 1;
-  const union = A.size + B.size - inter;
-  return union === 0 ? 0 : inter / union;
-}
-
-function cosine(a: number[], b: number[]): number {
-  if (a.length !== b.length) return 0;
-  let dot = 0;
-  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
-  return dot; // vectors are normalised
-}
 
 export async function findSimilarBands(bandId: string, limit = 8) {
   const target = await db.band.findUnique({

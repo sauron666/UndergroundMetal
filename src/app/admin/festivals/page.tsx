@@ -20,7 +20,10 @@ export default async function AdminFestivals() {
         <h1 className="font-display text-3xl">Festivals</h1>
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link href="/admin/festivals/import">Bulk import</Link>
+            <Link href="/admin/festivals/csv">CSV</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/festivals/import">JSON import</Link>
           </Button>
           <Button asChild variant="spike">
             <Link href="/admin/festivals/new">
