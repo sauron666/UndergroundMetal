@@ -13,6 +13,7 @@ import { recheckCitation } from "./handlers/recheck-citation";
 import { embedBand } from "./handlers/embed-band";
 import { sendPush } from "./handlers/send-push";
 import { sendDigest } from "./handlers/send-digest";
+import { sendNewsletter } from "./handlers/send-newsletter";
 import { tickScheduler } from "./scheduler";
 import type { JobKind } from "@prisma/client";
 
@@ -22,6 +23,7 @@ const HANDLERS: Record<JobKind, (payload: unknown) => Promise<unknown>> = {
   EMBED_BAND: embedBand,
   SEND_PUSH: sendPush,
   SEND_DIGEST: sendDigest,
+  SEND_NEWSLETTER: sendNewsletter,
   REINDEX_SEARCH: async () => ({ noop: true }),
 };
 

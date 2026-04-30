@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { notify } from "@/server/notifications";
+import { consumeToken, userKey } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,19 @@ export async function POST(
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // 30 forum posts / user / 10 min.
+  if (
+    !(await consumeToken({
+      key: userKey(session.user.id, "forum-post"),
+      capacity: 30,
+      refillPerSec: 30 / 600,
+    }))
+  ) {
+    return NextResponse.json(
+      { error: "Slow down — too many posts" },
+      { status: 429 }
+    );
   }
   const { id } = await ctx.params;
 

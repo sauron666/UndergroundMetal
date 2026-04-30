@@ -57,6 +57,26 @@ const TASKS: Task[] = [
     },
   },
   {
+    id: "newsletter.weekly",
+    intervalMs: 6 * DAY,
+    run: async () => {
+      const now = new Date();
+      const sunday = now.getUTCDay() === 0;
+      const hour = now.getUTCHours();
+      // Send 30 minutes after the per-user digest tick so they don't collide.
+      if (!sunday || hour < 9 || hour > 11) return;
+
+      const subs = await db.newsletterSubscriber.findMany({
+        where: { status: "CONFIRMED" },
+        select: { id: true },
+      });
+      for (const s of subs) {
+        await enqueue("SEND_NEWSLETTER", { subscriberId: s.id });
+      }
+      console.log(`[cron] newsletter.weekly enqueued ${subs.length}`);
+    },
+  },
+  {
     id: "citations.recheck",
     // Once a day. Worker only acts at 04:00 UTC ±1h to spread load.
     intervalMs: 23 * HOUR,

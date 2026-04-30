@@ -24,7 +24,8 @@
     "digest:send": "tsx src/server/jobs/run-digest.ts",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "perf:budget": "node scripts/check-bundle-budget.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",

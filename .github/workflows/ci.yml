@@ -38,6 +38,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm build
+      - run: pnpm perf:budget
 
   unit:
     name: vitest

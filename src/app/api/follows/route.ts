@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { findSimilarBands } from "@/server/similar";
+import { consumeToken, userKey } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,21 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // 120 follow toggles / user / 10 min — generous, but caps automated mass-
+  // follow scripts.
+  if (
+    !(await consumeToken({
+      key: userKey(session.user.id, "follow"),
+      capacity: 120,
+      refillPerSec: 120 / 600,
+    }))
+  ) {
+    return NextResponse.json(
+      { error: "Slow down" },
+      { status: 429 }
+    );
   }
 
   const parsed = Body.safeParse(await req.json().catch(() => ({})));

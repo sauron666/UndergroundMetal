@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { notify } from "@/server/notifications";
+import { consumeToken, userKey } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,20 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Anti-spam: 30 comments / user / 10 min.
+  if (
+    !(await consumeToken({
+      key: userKey(session.user.id, "comment-post"),
+      capacity: 30,
+      refillPerSec: 30 / 600,
+    }))
+  ) {
+    return NextResponse.json(
+      { error: "Slow down — too many comments" },
+      { status: 429 }
+    );
   }
 
   const parsed = Body.safeParse(await req.json().catch(() => ({})));

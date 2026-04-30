@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { slugify } from "@/lib/utils";
+import { consumeToken, userKey } from "@/server/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,19 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  // 5 thread creations / user / hour to keep the front page sane.
+  if (
+    !(await consumeToken({
+      key: userKey(session.user.id, "forum-thread"),
+      capacity: 5,
+      refillPerSec: 5 / 3600,
+    }))
+  ) {
+    return NextResponse.json(
+      { error: "Slow down on new threads" },
+      { status: 429 }
+    );
   }
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) {

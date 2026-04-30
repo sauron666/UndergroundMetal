@@ -977,6 +977,7 @@ enum JobKind {
   RECHECK_CITATION // re-fetch HEAD to confirm citation still resolves
   SEND_PUSH // dispatch a WebPush notification
   SEND_DIGEST // weekly email digest for one user
+  SEND_NEWSLETTER // weekly newsletter to one anonymous subscriber
   REINDEX_SEARCH // refresh tsvector for one entity
   EMBED_BAND // compute / refresh band embedding vector
 }
