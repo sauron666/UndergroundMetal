@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ListChecks } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -20,6 +21,7 @@ const KINDS = [
   { value: "BEST_OF", label: "Best of" },
   { value: "PRIMER", label: "Primers" },
   { value: "STAFF_PICK", label: "Staff picks" },
+  { value: "USER", label: "Community" },
 ];
 
 export default async function ListsPage({ searchParams }: PageProps) {
@@ -45,14 +47,19 @@ export default async function ListsPage({ searchParams }: PageProps) {
 
   return (
     <div className="container py-10 md:py-14 max-w-4xl">
-      <header className="mb-8">
-        <p className="text-[10px] uppercase tracking-[0.3em] text-primary mb-2 flex items-center gap-1.5">
-          <ListChecks className="h-3 w-3" /> Curated
-        </p>
-        <h1 className="font-display text-4xl md:text-5xl">Lists.</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Year-end best-of, scene primers, staff picks.
-        </p>
+      <header className="mb-8 flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.3em] text-primary mb-2 flex items-center gap-1.5">
+            <ListChecks className="h-3 w-3" /> Curated
+          </p>
+          <h1 className="font-display text-4xl md:text-5xl">Lists.</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Year-end best-of, scene primers, staff picks, user-curated.
+          </p>
+        </div>
+        <Button asChild variant="spike">
+          <Link href="/lists/new">New list</Link>
+        </Button>
       </header>
 
       <div className="flex flex-wrap gap-2 mb-6">

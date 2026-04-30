@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Github, ShieldCheck } from "lucide-react";
+import { Github, ShieldCheck, Mail } from "lucide-react";
 
-type Step = "creds" | "totp";
+type Step = "creds" | "totp" | "magic";
 
 export function SignInForm() {
   const router = useRouter();
@@ -34,6 +34,10 @@ export function SignInForm() {
       router.refresh();
     });
   };
+
+  if (step === "magic") {
+    return <MagicLinkPanel onBack={() => setStep("creds")} />;
+  }
 
   if (step === "totp") {
     return (
@@ -140,10 +144,91 @@ export function SignInForm() {
         type="button"
         variant="outline"
         className="w-full"
+        onClick={() => setStep("magic")}
+      >
+        <Mail className="h-4 w-4" /> Email me a sign-in link
+      </Button>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
         onClick={() => signIn("github")}
       >
         <Github className="h-4 w-4" /> Continue with GitHub
       </Button>
     </div>
+  );
+}
+
+function MagicLinkPanel({ onBack }: { onBack: () => void }) {
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  if (sent) {
+    return (
+      <div className="space-y-3 text-sm">
+        <p className="flex items-center gap-2 text-primary">
+          <Mail className="h-4 w-4" /> Check your inbox.
+        </p>
+        <p className="text-xs text-muted-foreground">
+          If <strong>{email}</strong> matches an account, we sent a sign-in
+          link. It expires in 15 minutes.
+        </p>
+        <Button variant="ghost" size="sm" onClick={onBack}>
+          Back
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        startTransition(async () => {
+          await fetch("/api/auth/magic/start", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          // Always show success regardless of whether the email exists.
+          setSent(true);
+        });
+      }}
+      className="space-y-3"
+    >
+      <p className="text-xs text-muted-foreground">
+        We&apos;ll email you a one-time link. No password needed.
+      </p>
+      <Input
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="your@email.com"
+        autoComplete="email"
+        required
+      />
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          className="flex-1"
+          onClick={onBack}
+          disabled={pending}
+        >
+          Back
+        </Button>
+        <Button
+          type="submit"
+          variant="spike"
+          className="flex-1"
+          disabled={pending || !email}
+        >
+          {pending ? "Sending..." : "Send link"}
+        </Button>
+      </div>
+    </form>
   );
 }

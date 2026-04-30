@@ -11,13 +11,15 @@
 import { cookies, headers } from "next/headers";
 import { en, type Dictionary } from "./dictionaries/en";
 import { bg } from "./dictionaries/bg";
+import { de } from "./dictionaries/de";
+import { ru } from "./dictionaries/ru";
 
-const DICTIONARIES: Record<Locale, Dictionary> = { en, bg };
-
-export type Locale = "en" | "bg";
-export const LOCALES: Locale[] = ["en", "bg"];
+export type Locale = "en" | "bg" | "de" | "ru";
+export const LOCALES: Locale[] = ["en", "bg", "de", "ru"];
 export const DEFAULT_LOCALE: Locale = "en";
 const COOKIE = "um.locale";
+
+const DICTIONARIES: Record<Locale, Dictionary> = { en, bg, de, ru };
 
 export async function getLocale(): Promise<Locale> {
   const c = await cookies();

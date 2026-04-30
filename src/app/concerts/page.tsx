@@ -16,13 +16,29 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ city?: string; country?: string; q?: string }>;
+  searchParams: Promise<{
+    city?: string;
+    country?: string;
+    q?: string;
+    from?: string;
+    to?: string;
+    priceMax?: string;
+  }>;
 }
 
 export default async function ConcertsPage({ searchParams }: PageProps) {
   const params = await searchParams;
+  const fromDate = params.from ? new Date(params.from) : new Date();
+  const toDate = params.to ? new Date(params.to) : null;
+  const priceMaxMinor = params.priceMax
+    ? Math.round(Number(params.priceMax) * 100)
+    : null;
+
   const where = {
-    date: { gte: new Date() },
+    date: {
+      gte: fromDate,
+      ...(toDate ? { lte: toDate } : {}),
+    },
     status: { not: "PAST" as const },
     ...(params.city
       ? { venue: { city: { contains: params.city, mode: "insensitive" as const } } }
@@ -32,6 +48,9 @@ export default async function ConcertsPage({ searchParams }: PageProps) {
       : {}),
     ...(params.q
       ? { title: { contains: params.q, mode: "insensitive" as const } }
+      : {}),
+    ...(priceMaxMinor != null
+      ? { priceMinor: { lte: priceMaxMinor } }
       : {}),
   };
 
@@ -60,21 +79,71 @@ export default async function ConcertsPage({ searchParams }: PageProps) {
             {shows.length.toLocaleString()} upcoming shows
           </p>
         </div>
-        <form className="flex gap-2 items-center" action="/concerts">
-          <Input
-            name="city"
-            defaultValue={params.city ?? ""}
-            placeholder="City"
-            className="w-32"
-          />
-          <Input
-            name="country"
-            defaultValue={params.country ?? ""}
-            placeholder="Country (BG)"
-            className="w-32"
-          />
-          <Button type="submit" size="sm" variant="outline">
-            Filter
+        <form
+          className="grid grid-cols-2 sm:grid-cols-3 lg:flex gap-2 lg:items-end"
+          action="/concerts"
+        >
+          {params.q && <input type="hidden" name="q" value={params.q} />}
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+              City
+            </span>
+            <Input
+              name="city"
+              defaultValue={params.city ?? ""}
+              placeholder="Sofia"
+              className="w-32"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+              Country
+            </span>
+            <Input
+              name="country"
+              defaultValue={params.country ?? ""}
+              placeholder="BG"
+              maxLength={2}
+              className="w-20"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+              From
+            </span>
+            <Input
+              name="from"
+              type="date"
+              defaultValue={params.from ?? ""}
+              className="w-40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+              To
+            </span>
+            <Input
+              name="to"
+              type="date"
+              defaultValue={params.to ?? ""}
+              className="w-40"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1 block">
+              Max price
+            </span>
+            <Input
+              name="priceMax"
+              type="number"
+              step="0.01"
+              defaultValue={params.priceMax ?? ""}
+              placeholder="40"
+              className="w-24"
+            />
+          </label>
+          <Button type="submit" size="sm" variant="outline" className="self-end">
+            Apply
           </Button>
         </form>
       </header>

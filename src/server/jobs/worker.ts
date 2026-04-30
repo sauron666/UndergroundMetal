@@ -2,6 +2,9 @@
  * Job worker. Polls the Job table for due rows and dispatches to handlers.
  * Run via `pnpm worker` (long-running) or `pnpm worker:once` (CI/cron mode
  * that drains the queue and exits).
+ *
+ * The long-running mode also ticks the scheduler once per minute to fire
+ * cron-style maintenance tasks (digest dispatch, citation re-checks, etc.).
  */
 
 import { claimNext, complete, fail } from "./queue";
@@ -10,6 +13,7 @@ import { recheckCitation } from "./handlers/recheck-citation";
 import { embedBand } from "./handlers/embed-band";
 import { sendPush } from "./handlers/send-push";
 import { sendDigest } from "./handlers/send-digest";
+import { tickScheduler } from "./scheduler";
 import type { JobKind } from "@prisma/client";
 
 const HANDLERS: Record<JobKind, (payload: unknown) => Promise<unknown>> = {
@@ -18,7 +22,6 @@ const HANDLERS: Record<JobKind, (payload: unknown) => Promise<unknown>> = {
   EMBED_BAND: embedBand,
   SEND_PUSH: sendPush,
   SEND_DIGEST: sendDigest,
-  // Reserved: search reindex is currently inline in the API routes.
   REINDEX_SEARCH: async () => ({ noop: true }),
 };
 
@@ -41,9 +44,17 @@ async function processOne(): Promise<boolean> {
 async function runLoop() {
   console.log("[worker] starting");
   let idle = 0;
-  // simple back-pressure: 0ms when busy, exponential up to 30s when idle
+  let lastSchedulerTick = 0;
+
   // eslint-disable-next-line no-constant-condition
   while (true) {
+    // Scheduler tick at most once per minute, regardless of queue activity.
+    const now = Date.now();
+    if (now - lastSchedulerTick > 60_000) {
+      lastSchedulerTick = now;
+      tickScheduler().catch((e) => console.error("[scheduler]", e));
+    }
+
     const did = await processOne();
     if (did) {
       idle = 0;
@@ -57,6 +68,8 @@ async function runLoop() {
 
 async function runOnce() {
   console.log("[worker] draining queue once");
+  // Also tick scheduler once so cron tasks can fire from CI cron entries.
+  await tickScheduler().catch((e) => console.error("[scheduler]", e));
   let processed = 0;
   while (await processOne()) processed += 1;
   console.log(`[worker] drained ${processed}`);

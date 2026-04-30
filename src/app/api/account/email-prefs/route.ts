@@ -11,6 +11,10 @@ const Body = z.object({
   newShowAlerts: z.boolean(),
   newArticleAlerts: z.boolean(),
   productUpdates: z.boolean(),
+  inAppShowAlerts: z.boolean(),
+  inAppArticleAlerts: z.boolean(),
+  inAppCommentReplies: z.boolean(),
+  inAppMentions: z.boolean(),
 });
 
 export async function PATCH(req: Request) {

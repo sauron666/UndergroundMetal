@@ -3,13 +3,22 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
-const FLAGS = { en: "EN", bg: "БГ" } as const;
+type L = "en" | "bg" | "de" | "ru";
 
-export function LocaleSwitcher({ current }: { current: "en" | "bg" }) {
+const FLAGS: Record<L, string> = {
+  en: "EN",
+  bg: "БГ",
+  de: "DE",
+  ru: "RU",
+};
+
+const ORDER: L[] = ["en", "bg", "de", "ru"];
+
+export function LocaleSwitcher({ current }: { current: L }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const change = (locale: "en" | "bg") => {
+  const change = (locale: L) => {
     if (locale === current) return;
     startTransition(async () => {
       await fetch("/api/i18n", {
@@ -23,7 +32,7 @@ export function LocaleSwitcher({ current }: { current: "en" | "bg" }) {
 
   return (
     <div className="flex items-center gap-1 text-[10px] uppercase tracking-widest font-mono">
-      {(["en", "bg"] as const).map((l) => (
+      {ORDER.map((l) => (
         <button
           key={l}
           type="button"

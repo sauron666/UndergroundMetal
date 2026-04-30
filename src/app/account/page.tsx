@@ -76,7 +76,7 @@ export default async function AccountPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Email preferences</CardTitle>
+            <CardTitle className="text-lg">Notifications</CardTitle>
           </CardHeader>
           <CardContent>
             <EmailPrefsForm
@@ -85,6 +85,10 @@ export default async function AccountPage() {
                 newShowAlerts: prefs.newShowAlerts,
                 newArticleAlerts: prefs.newArticleAlerts,
                 productUpdates: prefs.productUpdates,
+                inAppShowAlerts: prefs.inAppShowAlerts,
+                inAppArticleAlerts: prefs.inAppArticleAlerts,
+                inAppCommentReplies: prefs.inAppCommentReplies,
+                inAppMentions: prefs.inAppMentions,
               }}
             />
           </CardContent>

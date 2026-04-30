@@ -952,6 +952,14 @@ model Job {
   @@index([kind, status])
 }
 
+// Cron-style scheduler checkpoints. One row per scheduled task; the worker
+// atomically updates lastRunAt to claim a tick, so multi-worker deployments
+// don't double-fire.
+model ScheduleState {
+  id        String   @id
+  lastRunAt DateTime
+}
+
 // =====================================================================
 // PUSH NOTIFICATIONS (concert alerts for followed bands)
 // =====================================================================
@@ -1035,10 +1043,17 @@ model NewsletterSubscriber {
 
 model EmailPreference {
   userId           String   @id
+  // Email channel toggles
   weeklyDigest     Boolean  @default(true)
   newShowAlerts    Boolean  @default(true)
   newArticleAlerts Boolean  @default(true)
   productUpdates   Boolean  @default(false)
+  // In-app notification channel toggles. Independent of email — a user may
+  // want push but not email, or vice versa.
+  inAppShowAlerts      Boolean @default(true)
+  inAppArticleAlerts   Boolean @default(true)
+  inAppCommentReplies  Boolean @default(true)
+  inAppMentions        Boolean @default(true)
   unsubscribeToken String   @unique
   updatedAt        DateTime @updatedAt
 

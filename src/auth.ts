@@ -49,6 +49,40 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         ]
       : []),
     Credentials({
+      id: "magic",
+      name: "Magic link",
+      credentials: { token: { label: "Token", type: "text" } },
+      async authorize(creds) {
+        const token =
+          typeof (creds as { token?: unknown })?.token === "string"
+            ? ((creds as { token: string }).token as string)
+            : null;
+        if (!token) return null;
+        const row = await db.authToken.findUnique({
+          where: { token },
+          include: { user: true },
+        });
+        if (!row || row.kind !== "signin") return null;
+        if (row.consumedAt) return null;
+        if (row.expiresAt.getTime() < Date.now()) return null;
+        // Consume atomically; a second click is rejected.
+        const consumed = await db.authToken
+          .updateMany({
+            where: { id: row.id, consumedAt: null },
+            data: { consumedAt: new Date() },
+          })
+          .then((r) => r.count > 0)
+          .catch(() => false);
+        if (!consumed) return null;
+        return {
+          id: row.user.id,
+          email: row.user.email,
+          name: row.user.name,
+          image: row.user.image,
+        };
+      },
+    }),
+    Credentials({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
