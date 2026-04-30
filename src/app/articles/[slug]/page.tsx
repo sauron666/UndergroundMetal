@@ -123,6 +123,12 @@ export default async function ArticlePage({ params, searchParams }: PageProps) {
           <Badge variant="blood">{a.rating}/100</Badge>
         )}
         <div className="ml-auto flex items-center gap-2">
+          <Link
+            href={`/articles/${a.slug}/print`}
+            className="text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary"
+          >
+            PDF
+          </Link>
           <BookmarkButton
             target={{ articleId: a.id }}
             initial={!!myBookmark}

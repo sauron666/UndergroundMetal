@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Trash2, ExternalLink } from "lucide-react";
+import Link from "next/link";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 interface Release {
@@ -29,9 +29,11 @@ const TYPES = [
 
 export function ReleasesPanel({
   bandId,
+  bandSlug,
   initial,
 }: {
   bandId: string;
+  bandSlug: string;
   initial: Release[];
 }) {
   const [items, setItems] = useState(initial);
@@ -102,16 +104,13 @@ export function ReleasesPanel({
                 {r.type.replace("_", " ").toLowerCase()} · {r.year ?? "?"}
               </p>
             </div>
-            {r.bandcampUrl && (
-              <a
-                href={r.bandcampUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-muted-foreground hover:text-primary"
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-              </a>
-            )}
+            <Link
+              href={`/admin/bands/${bandSlug}/releases/${r.id}`}
+              className="text-muted-foreground hover:text-primary"
+              aria-label="Edit"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Link>
             <button
               onClick={() => remove(r.id)}
               className="text-muted-foreground hover:text-destructive"

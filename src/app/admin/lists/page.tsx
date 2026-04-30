@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { BestOfButton } from "./best-of-button";
 
 export default async function AdminLists() {
   const lists = await db.bandList
@@ -18,13 +19,16 @@ export default async function AdminLists() {
 
   return (
     <div>
-      <header className="flex items-center justify-between mb-6">
+      <header className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <h1 className="font-display text-3xl">Curated lists</h1>
-        <Button asChild variant="spike">
-          <Link href="/admin/lists/new">
-            <Plus className="h-3.5 w-3.5" /> New
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <BestOfButton />
+          <Button asChild variant="spike">
+            <Link href="/admin/lists/new">
+              <Plus className="h-3.5 w-3.5" /> New
+            </Link>
+          </Button>
+        </div>
       </header>
       <div className="border border-border rounded-sm overflow-hidden">
         <table className="w-full text-sm">

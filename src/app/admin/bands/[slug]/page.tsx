@@ -64,6 +64,7 @@ export default async function AdminBandEdit({
         <div className="space-y-4">
           <ReleasesPanel
             bandId={band.id}
+            bandSlug={band.slug}
             initial={band.releases.map((r) => ({
               id: r.id,
               title: r.title,

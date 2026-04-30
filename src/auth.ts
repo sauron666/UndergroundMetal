@@ -6,6 +6,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { verify as verifyTotp } from "@/server/security/totp";
 import type { UserRole, SubscriptionTier } from "@prisma/client";
 
 declare module "next-auth" {
@@ -22,6 +23,8 @@ declare module "next-auth" {
 const credentialsSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+  // Either a 6-digit TOTP code or a recovery code in XXXX-XXXX-XX format.
+  totpToken: z.string().optional(),
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -50,6 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totpToken: { label: "2FA code", type: "text" },
       },
       async authorize(creds) {
         const parsed = credentialsSchema.safeParse(creds);
@@ -60,6 +64,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!user?.passwordHash) return null;
         const ok = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!ok) return null;
+
+        // 2FA gate. If enabled, require either a valid TOTP token or a single
+        // recovery code (which is consumed on use).
+        if (user.totpEnabledAt && user.totpSecret) {
+          const tok = (parsed.data.totpToken ?? "").trim();
+          if (!tok) return null;
+
+          // Recovery codes are XXXX-XXXX-XX hex; TOTP codes are 6 digits.
+          const looksRecovery = /^[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{2}$/i.test(tok);
+
+          let pass = false;
+          if (looksRecovery) {
+            const upper = tok.toUpperCase();
+            for (const hashed of user.recoveryCodes) {
+              if (await bcrypt.compare(upper, hashed)) {
+                pass = true;
+                // Consume this code so it cannot be reused
+                const remaining = user.recoveryCodes.filter((c) => c !== hashed);
+                await db.user.update({
+                  where: { id: user.id },
+                  data: { recoveryCodes: remaining },
+                });
+                break;
+              }
+            }
+          } else {
+            pass = verifyTotp(tok, user.totpSecret);
+          }
+          if (!pass) return null;
+        }
+
         return {
           id: user.id,
           email: user.email,

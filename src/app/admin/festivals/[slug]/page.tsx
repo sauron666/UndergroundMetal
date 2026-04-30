@@ -3,6 +3,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { FestivalForm } from "./form";
 import { LineupPanel } from "./lineup-panel";
+import { TicketsPanel } from "./tickets-panel";
 
 export default async function AdminFestivalEdit({
   params,
@@ -17,6 +18,7 @@ export default async function AdminFestivalEdit({
         orderBy: [{ day: "asc" }, { position: "asc" }],
         include: { band: { select: { id: true, slug: true, name: true } } },
       },
+      tickets: { orderBy: { priceMinor: "asc" } },
     },
   });
   if (!fest) notFound();
@@ -57,17 +59,31 @@ export default async function AdminFestivalEdit({
             verified: fest.verified,
           }}
         />
-        <LineupPanel
-          festivalId={fest.id}
-          initial={fest.bookings.map((b) => ({
-            bandId: b.bandId,
-            bandSlug: b.band.slug,
-            bandName: b.band.name,
-            position: b.position,
-            day: b.day,
-            stage: b.stage,
-          }))}
-        />
+        <div className="space-y-4">
+          <LineupPanel
+            festivalId={fest.id}
+            initial={fest.bookings.map((b) => ({
+              bandId: b.bandId,
+              bandSlug: b.band.slug,
+              bandName: b.band.name,
+              position: b.position,
+              day: b.day,
+              stage: b.stage,
+            }))}
+          />
+          <TicketsPanel
+            festivalId={fest.id}
+            initial={fest.tickets.map((t) => ({
+              id: t.id,
+              provider: t.provider,
+              url: t.url,
+              passType: t.passType,
+              priceMinor: t.priceMinor,
+              currency: t.currency,
+              available: t.available,
+            }))}
+          />
+        </div>
       </div>
     </div>
   );
