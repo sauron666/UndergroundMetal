@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { Reply, Trash2, MessageSquare, ArrowBigUp, ArrowBigDown, Pencil } from "lucide-react";
@@ -366,10 +366,14 @@ function CommentReplies({
 }) {
   const collapsedByDefault = depth >= 3;
   const [open, setOpen] = useState(!collapsedByDefault);
+  const regionId = useId();
 
   if (depth >= 6) {
     return (
-      <div className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground border-l border-border/60 pl-4">
+      <div
+        role="note"
+        className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground border-l border-border/60 pl-4"
+      >
         Continue thread →{" "}
         <span className="text-foreground">
           {replies.length} more {replies.length === 1 ? "reply" : "replies"}
@@ -378,34 +382,47 @@ function CommentReplies({
     );
   }
 
-  if (!open) {
-    const visible = countVisible(replies);
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary border-l border-border/60 pl-4"
-      >
-        Show {visible} {visible === 1 ? "reply" : "replies"}
-      </button>
-    );
-  }
-
+  const visible = countVisible(replies);
+  // Toggle only appears when the branch was collapsed by default — keeps
+  // shallow threads visually clean. The button still carries aria-expanded
+  // / aria-controls for screen readers.
   return (
-    <div className="mt-4 space-y-4">
-      {replies.map((r) => (
-        <CommentItem
-          key={r.id}
-          comment={r}
-          depth={depth}
-          currentUserId={currentUserId}
-          isStaff={isStaff}
-          onReply={onReply}
-          onDelete={onDelete}
-          pending={pending}
-        />
-      ))}
-    </div>
+    <>
+      {collapsedByDefault && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          aria-controls={regionId}
+          className="mt-2 text-[10px] uppercase tracking-widest text-muted-foreground hover:text-primary border-l border-border/60 pl-4"
+        >
+          {open
+            ? `Hide ${visible} ${visible === 1 ? "reply" : "replies"}`
+            : `Show ${visible} ${visible === 1 ? "reply" : "replies"}`}
+        </button>
+      )}
+      {open && (
+        <div
+          id={regionId}
+          role="group"
+          aria-label={`${visible} ${visible === 1 ? "reply" : "replies"}`}
+          className="mt-4 space-y-4"
+        >
+          {replies.map((r) => (
+            <CommentItem
+              key={r.id}
+              comment={r}
+              depth={depth}
+              currentUserId={currentUserId}
+              isStaff={isStaff}
+              onReply={onReply}
+              onDelete={onDelete}
+              pending={pending}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -472,7 +489,11 @@ function CommentVote({
       >
         <ArrowBigUp className="h-3.5 w-3.5" />
       </button>
-      <span className={cn("font-mono px-1", score > 0 && "text-primary", score < 0 && "text-destructive")}>
+      <span
+        aria-live="polite"
+        aria-label={`score ${score}`}
+        className={cn("font-mono px-1", score > 0 && "text-primary", score < 0 && "text-destructive")}
+      >
         {score >= 0 ? `+${score}` : score}
       </span>
       <button

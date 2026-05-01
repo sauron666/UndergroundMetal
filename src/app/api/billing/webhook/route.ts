@@ -26,6 +26,16 @@ export async function POST(req: Request) {
     );
   }
 
+  // Idempotency: Stripe delivers at-least-once. The unique PK on event.id
+  // makes the second delivery a no-op without re-running side effects.
+  try {
+    await db.stripeWebhookEvent.create({
+      data: { id: event.id, type: event.type },
+    });
+  } catch {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
   switch (event.type) {
     case "checkout.session.completed":
     case "customer.subscription.created":
