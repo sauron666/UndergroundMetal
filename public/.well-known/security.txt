@@ -1,0 +1,10 @@
+# RFC 9116 security.txt — replace placeholders before launch.
+#
+# Update Expires before this date. Browsers and scanners will warn
+# operators if they hit a stale file.
+
+Contact: mailto:security@undergroundmetal.example
+Expires: 2027-05-01T00:00:00.000Z
+Preferred-Languages: en, bg
+Canonical: https://undergroundmetal.example/.well-known/security.txt
+Policy: https://undergroundmetal.example/legal/security

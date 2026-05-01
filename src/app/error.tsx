@@ -4,7 +4,12 @@ import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export default function GlobalError({
+/**
+ * Page-level error boundary. Catches errors thrown inside route segments
+ * below the root layout. For crashes ABOVE this layer (root layout, html
+ * shell), see global-error.tsx.
+ */
+export default function PageError({
   error,
   reset,
 }: {
