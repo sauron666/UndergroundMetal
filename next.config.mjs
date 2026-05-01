@@ -19,9 +19,10 @@ const isProd = process.env.NODE_ENV === "production";
 
 const csp = [
   "default-src 'self'",
-  // Scripts: own + 'unsafe-inline' for the theme bootstrap; switch to nonce
-  // strategy once we add nonce middleware.
-  "script-src 'self' 'unsafe-inline'",
+  // Scripts: own + 'unsafe-inline' for the theme bootstrap. In dev we
+  // additionally need 'unsafe-eval' because Next's React Refresh runtime
+  // uses eval() for HMR; production builds don't ship it.
+  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
   // Styles: Tailwind needs inline.
   "style-src 'self' 'unsafe-inline'",
   // Fonts: Next/Font self-hosts so 'self' is enough.
