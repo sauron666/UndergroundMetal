@@ -17,9 +17,12 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   let dbOk = false;
   let dbError: string | undefined;
+  let dbLatencyMs: number | undefined;
+  const t0 = Date.now();
   try {
     await db.$queryRaw`SELECT 1`;
     dbOk = true;
+    dbLatencyMs = Date.now() - t0;
   } catch (e) {
     dbError = e instanceof Error ? e.message : "unknown";
   }
@@ -29,10 +32,12 @@ export async function GET() {
       ok: dbOk,
       db: dbOk ? "ok" : "error",
       dbError,
+      dbLatencyMs,
       uptime: Math.round(process.uptime()),
       ts: new Date().toISOString(),
       version: process.env.NEXT_PUBLIC_BUILD_SHA ?? "dev",
+      maintenance: process.env.MAINTENANCE_MODE === "1",
     },
-    { status }
+    { status, headers: { "Cache-Control": "no-store" } }
   );
 }

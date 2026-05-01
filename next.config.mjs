@@ -38,8 +38,9 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
   "frame-ancestors 'self'",
-  // Reporting (replace with real endpoint when ready)
-  // "report-to default",
+  // Violations land at our own collector, which forwards to the
+  // observability hook (Sentry when wired).
+  "report-uri /api/csp-report",
 ].join("; ");
 
 const securityHeaders = [
