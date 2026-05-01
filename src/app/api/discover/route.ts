@@ -14,6 +14,19 @@ const Body = z.object({
 });
 
 export async function POST(req: Request) {
+  // Operator kill-switch documented in RUNBOOK.md — flip this when
+  // Anthropic is in a bad state to fail fast with a clear message
+  // instead of timing out per-request.
+  if (process.env.DISCOVERY_DISABLED === "1") {
+    return NextResponse.json(
+      {
+        error:
+          "Discovery is temporarily disabled. We're working on it — try again shortly.",
+      },
+      { status: 503 }
+    );
+  }
+
   // Rate limit before parsing or hitting the LLM. Anonymous: 10 reqs/hour
   // per IP. Signed-in: 60 reqs/hour. Premium: 240/hour.
   const session = await auth();

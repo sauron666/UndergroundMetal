@@ -1,18 +1,13 @@
 /**
  * Next.js boot hook. Runs once per worker. Wire optional production
  * observability vendors here. We deliberately don't pull a Sentry SDK by
- * default — operators can add it via env + this file:
- *
- *   if (process.env.SENTRY_DSN) {
- *     const Sentry = await import("@sentry/nextjs");
- *     Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1 });
- *     setObservability({
- *       captureException: (err, ctx) => Sentry.captureException(err, { extra: ctx }),
- *       captureEvent: (name, ctx) => Sentry.captureMessage(name, { extra: ctx }),
- *     });
- *   }
+ * default — the wireSentry() helper dynamic-imports @sentry/nextjs only
+ * when SENTRY_DSN is configured AND the package is actually installed.
  */
 
 export async function register() {
-  // Intentionally empty by default. Replace per-deployment.
+  if (process.env.SENTRY_DSN) {
+    const { wireSentry } = await import("./lib/observability-sentry");
+    await wireSentry();
+  }
 }

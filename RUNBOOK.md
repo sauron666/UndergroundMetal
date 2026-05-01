@@ -55,10 +55,17 @@ Subscription state diverges from Stripe.
 
 Token-bucket limiter (`RateLimitBucket`) tightens automatically, but if
 abuse persists:
-1. Identify offending users: `select "authorId", count(*) from "Comment"
+1. Identify offending users: `select "userId", count(*) from "Comment"
    where "createdAt" > now() - interval '1 hour' group by 1 order by 2 desc limit 20`.
-2. Soft-ban: `update "User" set "banned" = true where id = '<id>'`.
-3. Hard-delete the comments: scope by author and time window.
+2. Hide their content in bulk:
+   `update "Comment" set "hidden" = true where "userId" = '<id>'
+    and "createdAt" > now() - interval '24 hour'`.
+3. Demote the role to revoke posting / authoring rights:
+   `update "User" set "role" = 'READER' where id = '<id>'` (or pause
+   the account entirely with a one-off email-suspension flag once that
+   ships). The rate-limit bucket also accepts a manual entry to lock the
+   user out for N hours: insert with `key = 'user:<id>:comment'`,
+   `tokens = 0`, `refillPerSec = 0`.
 
 ### 5. Image upload failures
 
